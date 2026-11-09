@@ -15,15 +15,15 @@ public class Result implements Serializable {
 
     private Result(){}
 
-    public Result success(){
+    static public Result success(){
         return success(null,null);
     }
 
-    public Result success(Object data){
+    static public Result success(Object data){
         return success(null,data);
     }
 
-    public Result success(String msg,Object data){
+    static public Result success(String msg,Object data){
          Result result = new Result();
          result.setCode(200);
          if(msg == null){
@@ -39,12 +39,12 @@ public class Result implements Serializable {
          return result;
     }
 
-    public Result fail(String msg){
+    static public Result fail(String msg){
 
         Result result = new Result();
         result.setCode(500);
         result.setMessage(msg);
-        result.setData(data);
+        result.setData(null);
 
         return result;
     }
