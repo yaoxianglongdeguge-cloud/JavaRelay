@@ -1,4 +1,4 @@
-package com.example.javarelay.Status;
+package com.example.javarelay.status;
 
 public enum OrderStatusEnum {
 

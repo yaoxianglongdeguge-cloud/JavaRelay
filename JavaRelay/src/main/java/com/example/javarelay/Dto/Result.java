@@ -1,4 +1,4 @@
-package com.example.javarelay.Dto;
+package com.example.javarelay.dto;
 
 import lombok.Data;
 

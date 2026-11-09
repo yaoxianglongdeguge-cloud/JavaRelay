@@ -1,10 +1,11 @@
-package com.example.javarelay.Service.Impl;
+package com.example.javarelay.service.Impl;
 
-import com.example.javarelay.Dto.DriverDto;
-import com.example.javarelay.Dto.PassengerDto;
-import com.example.javarelay.Dto.Result;
-import com.example.javarelay.Service.DriverOrderService;
+import com.example.javarelay.dto.DriverDto;
+import com.example.javarelay.dto.Result;
+import com.example.javarelay.service.DriverOrderService;
+import org.springframework.stereotype.Service;
 
+@Service
 public class DriverOrderServiceImpl implements DriverOrderService {
 
     @Override

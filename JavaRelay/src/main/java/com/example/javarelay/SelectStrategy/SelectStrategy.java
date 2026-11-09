@@ -1,6 +1,6 @@
-package com.example.javarelay.SelectStrategy;
+package com.example.javarelay.selectstrategy;
 
-import com.example.javarelay.Dto.DriverDto;
+import com.example.javarelay.dto.DriverDto;
 
 import java.util.List;
 

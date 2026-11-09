@@ -1,9 +1,10 @@
-package com.example.javarelay.Entity;
+package com.example.javarelay.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.example.javarelay.constant.*;
 
 @Data
 @TableName("ride_order")
@@ -28,6 +29,8 @@ public class Order {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
+    private Integer activeFlag;
+
     public Order(Long passengerId,BigDecimal startLng,BigDecimal startLat,BigDecimal endLat,BigDecimal endLng,
     Integer status){
         this.setPassengerId(passengerId);
@@ -36,5 +39,6 @@ public class Order {
         this.setEndLat(endLat);
         this.setEndLng(endLng);
         this.setStatus(status);
+        this.setActiveFlag(Constants.ACTIVE_ORDER);
     }
 }

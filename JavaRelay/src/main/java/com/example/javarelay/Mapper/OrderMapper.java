@@ -1,7 +1,7 @@
-package com.example.javarelay.Mapper;
+package com.example.javarelay.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.example.javarelay.Entity.Order;
+import com.example.javarelay.entity.Order;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 

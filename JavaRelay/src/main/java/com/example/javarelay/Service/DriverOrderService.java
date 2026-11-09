@@ -1,8 +1,7 @@
-package com.example.javarelay.Service;
+package com.example.javarelay.service;
 
-import com.example.javarelay.Dto.DriverDto;
-import com.example.javarelay.Dto.PassengerDto;
-import com.example.javarelay.Dto.Result;
+import com.example.javarelay.dto.DriverDto;
+import com.example.javarelay.dto.Result;
 
 public interface DriverOrderService {
 

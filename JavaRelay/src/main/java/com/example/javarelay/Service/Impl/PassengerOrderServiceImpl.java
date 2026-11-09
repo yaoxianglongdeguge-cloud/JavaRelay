@@ -1,23 +1,18 @@
-package com.example.javarelay.Service.Impl;
+package com.example.javarelay.service.Impl;
 
-import com.example.javarelay.Dto.PassengerDto;
-import com.example.javarelay.Dto.Result;
-import com.example.javarelay.Entity.Order;
-import com.example.javarelay.Entity.OrderStatusLog;
-import com.example.javarelay.Entity.Passenger;
-import com.example.javarelay.Mapper.OrderMapper;
-import com.example.javarelay.Mapper.OrderStatusLogMapper;
-import com.example.javarelay.SelectStrategy.SelectStrategy;
-import com.example.javarelay.Service.OrderService;
-import com.example.javarelay.Service.PassengerOrderService;
-import com.example.javarelay.Service.SelectStrategyService;
-import com.example.javarelay.Status.OrderOperatorEnum;
-import com.example.javarelay.Status.OrderStatusEnum;
+import com.example.javarelay.dto.PassengerDto;
+import com.example.javarelay.dto.Result;
+import com.example.javarelay.entity.Order;
+import com.example.javarelay.mapper.OrderMapper;
+import com.example.javarelay.mapper.OrderStatusLogMapper;
+import com.example.javarelay.service.OrderService;
+import com.example.javarelay.service.PassengerOrderService;
+import com.example.javarelay.service.SelectStrategyService;
+import com.example.javarelay.status.OrderStatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.util.Map;
-
+@Service
 public class PassengerOrderServiceImpl implements PassengerOrderService {
 
     @Autowired
@@ -32,7 +27,7 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
     @Autowired
     SelectStrategyService selectStrategyService;
 
-    
+
     @Override
     public Result PutOrder(PassengerDto passengerDto) {
 
@@ -54,10 +49,17 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
         //没有未结束订单，生成订单并插入
 
-        orderService.createAndInsertOrder(passengerDto);
+        try{
+            orderService.createAndInsertOrder(passengerDto).equals(false);
+        }catch(Exception e){
+            return Result.fail(e.getMessage());
+        }
 
-        return Result.success("已生成订单");
+        //开始分配司机
+
+        return Result.success("分配成功,司机正在赶来");
     }
+
 
     @Override
     public Result CancelOrder(PassengerDto passengerDto) {

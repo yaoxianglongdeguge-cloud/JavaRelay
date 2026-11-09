@@ -1,4 +1,4 @@
-package com.example.javarelay.Status;
+package com.example.javarelay.status;
 
 public enum DriverStatusEnum {
 
@@ -17,7 +17,7 @@ public enum DriverStatusEnum {
     public int getCode() { return code; }
     public String getDesc() { return desc; }
 
-    public static OrderStatusEnum of(int code) {
+    public static DriverStatusEnum of(int code) {
         for (DriverStatusEnum s : values()) {
             if (s.code == code) return s;
         }

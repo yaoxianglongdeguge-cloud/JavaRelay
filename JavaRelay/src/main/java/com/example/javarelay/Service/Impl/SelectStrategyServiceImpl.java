@@ -1,14 +1,15 @@
-package com.example.javarelay.Service.Impl;
+package com.example.javarelay.service.Impl;
 
-import com.example.javarelay.Dto.DriverDto;
-import com.example.javarelay.SelectStrategy.SelectStrategy;
-import com.example.javarelay.Service.SelectStrategyService;
+import com.example.javarelay.dto.DriverDto;
+import com.example.javarelay.selectstrategy.SelectStrategy;
+import com.example.javarelay.service.SelectStrategyService;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 
-@Component
+@Service
 public class SelectStrategyServiceImpl implements SelectStrategyService {
 
     Map<String,SelectStrategy> map;

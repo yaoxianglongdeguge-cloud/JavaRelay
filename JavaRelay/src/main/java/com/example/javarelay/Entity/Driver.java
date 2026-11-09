@@ -1,4 +1,4 @@
-package com.example.javarelay.Entity;
+package com.example.javarelay.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;

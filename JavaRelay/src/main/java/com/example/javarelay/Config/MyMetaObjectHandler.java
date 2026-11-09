@@ -1,4 +1,4 @@
-package com.example.javarelay.Config;
+package com.example.javarelay.config;
 
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;

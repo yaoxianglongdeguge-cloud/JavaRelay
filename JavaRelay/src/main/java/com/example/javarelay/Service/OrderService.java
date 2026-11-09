@@ -1,9 +1,6 @@
-package com.example.javarelay.Service;
+package com.example.javarelay.service;
 
-import com.example.javarelay.Dto.PassengerDto;
-import com.example.javarelay.Entity.Passenger;
-
-import java.math.BigDecimal;
+import com.example.javarelay.dto.PassengerDto;
 
 public interface OrderService {
 

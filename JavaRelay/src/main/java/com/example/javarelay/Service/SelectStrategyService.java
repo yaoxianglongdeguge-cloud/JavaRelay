@@ -1,6 +1,6 @@
-package com.example.javarelay.Service;
+package com.example.javarelay.service;
 
-import com.example.javarelay.Dto.DriverDto;
+import com.example.javarelay.dto.DriverDto;
 
 import java.util.List;
 

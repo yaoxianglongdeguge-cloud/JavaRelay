@@ -1,7 +1,7 @@
-package com.example.javarelay.Mapper;
+package com.example.javarelay.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.example.javarelay.Entity.Driver;
+import com.example.javarelay.entity.Driver;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

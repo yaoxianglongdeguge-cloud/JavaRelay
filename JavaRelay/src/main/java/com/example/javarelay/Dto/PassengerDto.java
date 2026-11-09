@@ -1,6 +1,5 @@
-package com.example.javarelay.Dto;
+package com.example.javarelay.dto;
 
-import com.example.javarelay.Entity.Passenger;
 import lombok.Data;
 
 import java.math.BigDecimal;
