@@ -1,6 +1,7 @@
 package com.example.javarelay.service.Impl;
 
 import com.example.javarelay.dto.PassengerDto;
+import com.example.javarelay.dto.Result;
 import com.example.javarelay.entity.Order;
 import com.example.javarelay.entity.OrderStatusLog;
 import com.example.javarelay.mapper.OrderMapper;
@@ -26,7 +27,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean createAndInsertOrder(PassengerDto passengerDto){
+    public Result createAndInsertOrder(PassengerDto passengerDto){
 
         //生成订单并插入
         Long passengerId = passengerDto.getPassengerId();
@@ -64,6 +65,6 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("订单插入失败");
         }
 
-        return true;
+        return Result.success(order1);
     }
 }

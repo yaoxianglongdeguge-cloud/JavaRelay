@@ -3,6 +3,7 @@ package com.example.javarelay.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Set;
 
 @Data
@@ -10,13 +11,19 @@ public class PassengerDto {
 
     Long passengerId;
 
-    public BigDecimal startLng;
-    public BigDecimal startLat;
-    public BigDecimal endLng;
-    public BigDecimal endLat;
+    private BigDecimal startLng;
+    private BigDecimal startLat;
+    private BigDecimal endLng;
+    private BigDecimal endLat;
+    private String city;
 
-    public Set<Integer> model;
+    private String strategy;
+    private Integer strategyMark;
 
-    public String strategy;
+    private String precomputeMoneyType;
+    private Integer precomMark;
+
+    private String computeMoneyType;
+    private Integer computeMark;
 
 }
