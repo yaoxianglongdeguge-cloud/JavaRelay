@@ -2,13 +2,18 @@ package com.example.javarelay.service.Impl;
 
 import com.example.javarelay.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
+import com.example.javarelay.entity.Driver;
 import com.example.javarelay.entity.Order;
 import com.example.javarelay.entity.OrderStatusLog;
+import com.example.javarelay.exception.BusinessException;
+import com.example.javarelay.exception.StatusChangeException;
+import com.example.javarelay.mapper.DriverMapper;
 import com.example.javarelay.mapper.OrderMapper;
 import com.example.javarelay.mapper.OrderStatusLogMapper;
 import com.example.javarelay.service.OrderService;
 import com.example.javarelay.status.OrderOperatorEnum;
 import com.example.javarelay.status.OrderStatusEnum;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -21,6 +26,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     OrderMapper orderMapper;
+
+    @Autowired
+    DriverMapper driverMapper;
 
     @Autowired
     OrderStatusLogMapper orderStatusLogMapper;
@@ -36,13 +44,11 @@ public class OrderServiceImpl implements OrderService {
                 OrderStatusEnum.WAITING_DISPATCH.getCode());
 
         try{
-            int rows = orderMapper.insert(order1);
-            if (rows <= 0) {
-                throw new RuntimeException("订单插入失败");
-            }
+            orderMapper.insert(order1);
+
         }catch(DuplicateKeyException e) {
             //用唯一索引防止重复插入
-            throw new RuntimeException("您有正在进行的订单，请勿重复下单");
+            throw new StatusChangeException("重复插入");
 
         }
         //主键回填，得到订单id
@@ -58,13 +64,41 @@ public class OrderServiceImpl implements OrderService {
 
         int rows = orderStatusLogMapper.insert(orderStatusLog);
         if (rows <= 0) {
-            throw new RuntimeException("订单插入失败");
+            throw new RuntimeException("订单流转记录插入失败");
         }
 
         return Result.success(order1);
     }
 
-    public Result changeOrderStatus(Long orderId,Integer fromStatus,Integer toStatus){
+    @Transactional
+    @Override
+    public Result changeOrderStatus(Long orderId,Long passengerId,
+                                    Integer fromStatus,Integer toStatus,Integer operator,
+                                    Long driverId,Integer fromStatus2,Integer toStatus2){
+
+        int rows1 = orderMapper.updateStatusWithOptimisticLock(orderId,fromStatus,toStatus,driverId);
+        if(rows1 == 0){
+            throw new StatusChangeException("ORDER_CHANGE_FAIL");
+        }
+
+        OrderStatusLog orderStatusLog = new OrderStatusLog(
+                orderId,
+                fromStatus,
+                toStatus,
+                operator,
+                passengerId
+        );
+
+        int rows = orderStatusLogMapper.insert(orderStatusLog);
+        if (rows <= 0) {
+            throw new RuntimeException("订单流转记录插入失败");
+        }
+
+        int row2 = driverMapper.updateStatusWithOptimisticLock(driverId,fromStatus2,toStatus2);
+        if(driverId != null && row2 == 0){
+            throw new StatusChangeException("DRIVER_CHANGE_FAIL");
+        }
+
 
         return null;
     }

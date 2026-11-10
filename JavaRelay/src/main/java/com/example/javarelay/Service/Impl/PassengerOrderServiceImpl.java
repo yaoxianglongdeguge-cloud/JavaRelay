@@ -6,6 +6,7 @@ import com.example.javarelay.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.entity.Driver;
 import com.example.javarelay.entity.Order;
+import com.example.javarelay.exception.StatusChangeException;
 import com.example.javarelay.infocollect.InfoCollector;
 import com.example.javarelay.infra.GeoUtil;
 import com.example.javarelay.mapper.DriverMapper;
@@ -15,6 +16,7 @@ import com.example.javarelay.service.OrderService;
 import com.example.javarelay.service.PassengerOrderService;
 import com.example.javarelay.service.StrategysService;
 import com.example.javarelay.status.DriverStatusEnum;
+import com.example.javarelay.status.OrderOperatorEnum;
 import com.example.javarelay.status.OrderStatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -105,19 +107,7 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
         //通知司机
 
-        while(true){
 
-            try{
-                orderService.changeOrderStatus(order1.getId(),
-                        OrderStatusEnum.WAITING_DISPATCH.getCode(),
-                        OrderStatusEnum.DISPATCHED.getCode());
-                break;
-
-            }catch (Exception e){
-                return Result.fail("订单已结束");
-            }
-
-        }
         return Result.success("分配成功,司机正在赶来");
     }
 
@@ -154,13 +144,17 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
 
                 try{
-                    driverMapper.updateStatusWithOptimisticLock(driverDto.getId(),
-                            DriverStatusEnum.LEISURE.getCode(),
-                            DriverStatusEnum.RECEIVING.getCode());
+                    orderService.changeOrderStatus(orderId,passengerId,OrderStatusEnum.WAITING_DISPATCH.getCode(),
+                            OrderStatusEnum.DISPATCHED.getCode(), OrderOperatorEnum.PASSENGER.getCode(),
+                            driverDto.getId(), DriverStatusEnum.LEISURE.getCode(),DriverStatusEnum.RECEIVING.getCode());
 
-
-                }catch(DuplicateKeyException e) {
-                    continue;
+                }catch(StatusChangeException e) {
+                    String reason = e.getMessage();
+                    if("DRIVER_CHANGE_FAIL".equals(reason)){
+                        continue;
+                    }else if("ORDER_CHANGE_FAIL".equals(reason)){
+                        return Result.fail("订单已结束");
+                    }
                 }
 
                 break;

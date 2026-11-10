@@ -1,0 +1,18 @@
+package com.example.javarelay.exception;
+
+import lombok.Getter;
+
+@Getter
+public class BusinessException extends RuntimeException {
+    private final Integer code;
+
+    public BusinessException(String message) {
+        super(message);
+        this.code = 466;
+    }
+
+    public BusinessException(Integer code, String message) {
+        super(message);
+        this.code = code;
+    }
+}
