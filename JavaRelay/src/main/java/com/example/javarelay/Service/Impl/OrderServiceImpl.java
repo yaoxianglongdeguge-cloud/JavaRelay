@@ -31,12 +31,8 @@ public class OrderServiceImpl implements OrderService {
 
         //生成订单并插入
         Long passengerId = passengerDto.getPassengerId();
-        BigDecimal startLng = passengerDto.getStartLng();
-        BigDecimal startLat = passengerDto.getStartLat();
-        BigDecimal endLng = passengerDto.getEndLng();
-        BigDecimal endLat = passengerDto.getEndLat();
 
-        Order order1 = new Order(passengerId,startLng,startLat,endLat,endLng,
+        Order order1 = new Order(passengerId,
                 OrderStatusEnum.WAITING_DISPATCH.getCode());
 
         try{
@@ -66,5 +62,10 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return Result.success(order1);
+    }
+
+    public Result changeOrderStatus(Long orderId,Integer fromStatus,Integer toStatus){
+
+        return null;
     }
 }

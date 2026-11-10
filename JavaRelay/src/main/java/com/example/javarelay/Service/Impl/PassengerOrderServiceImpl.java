@@ -6,6 +6,7 @@ import com.example.javarelay.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.entity.Driver;
 import com.example.javarelay.entity.Order;
+import com.example.javarelay.infocollect.InfoCollector;
 import com.example.javarelay.infra.GeoUtil;
 import com.example.javarelay.mapper.DriverMapper;
 import com.example.javarelay.mapper.OrderMapper;
@@ -79,6 +80,12 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
         }
 
         Order order1 = (Order)result1.getData();
+
+        Result result2 = strategysService.putInfoCollector(order1.getId(),passengerDto);
+        if(result2.getCode() != 200){
+            return result2;
+        }
+
         //开始分配司机
         Result result = AssignDriver(passengerDto,order1.getId());
 
@@ -88,6 +95,8 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
         DriverDto driverDto = (DriverDto) result.getData();
 
+
+
         //确定路线
 
 
@@ -96,30 +105,30 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
         //通知司机
 
+        while(true){
+
+            try{
+                orderService.changeOrderStatus(order1.getId(),
+                        OrderStatusEnum.WAITING_DISPATCH.getCode(),
+                        OrderStatusEnum.DISPATCHED.getCode());
+                break;
+
+            }catch (Exception e){
+                return Result.fail("订单已结束");
+            }
+
+        }
         return Result.success("分配成功,司机正在赶来");
     }
 
     private Result AssignDriver(PassengerDto passengerDto,Long orderId){
 
         Long passengerId = passengerDto.getPassengerId();
-        BigDecimal startLng = passengerDto.getStartLng();
-        BigDecimal startLat = passengerDto.getStartLat();
 
         //确定是否在服务范围内
-        String city = passengerDto.getCity();
-
-        Map<Object,Object> siteCity = redisTemplate.opsForHash().
-                entries(RedisPefix.SERVICEAREA_PREFIX+city);
-
-        Map<String, Double> result = new HashMap<>();
-        siteCity.forEach((k, v) ->
-                result.put(String.valueOf(k), (Double)v)
-        );
-        double distance = GeoUtil.getDistance(doubleValue(startLng),doubleValue(startLat),
-                result.get("centerLng"),result.get("centerLat"));
-
-        if(distance > result.get("centerRedius")){
-            return Result.fail("不在服务范围内");
+        Result result = strategysService.findPassengerByStrategy(orderId);
+        if(result.getCode() != 200){
+            return result;
         }
 
         //筛选司机
@@ -137,7 +146,7 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
                 }
             }
 
-            result1 = strategysService.findDriverByStrategy(passengerDto.getStrategy(),orderId);
+            result1 = strategysService.findDriverByStrategy(orderId);
 
             if(result1.getCode() == 200){
 
@@ -178,10 +187,7 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
 
     private Boolean passengerCheck(PassengerDto passengerDto){
-        if(passengerDto == null || passengerDto.getPassengerId() == null ||
-                passengerDto.getCity() == null ||
-                passengerDto.getStartLat() == null || passengerDto.getStartLng() == null||
-                passengerDto.getEndLat() == null || passengerDto.getEndLng() == null){
+        if(passengerDto == null || passengerDto.getPassengerId() == null){
             return false;
         }
         return true;

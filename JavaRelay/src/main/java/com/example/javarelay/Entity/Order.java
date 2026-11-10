@@ -31,7 +31,7 @@ public class Order {
 
     private Integer activeFlag;
 
-    public Order(Long passengerId,BigDecimal startLng,BigDecimal startLat,BigDecimal endLat,BigDecimal endLng,
+    public Order(Long passengerId,
     Integer status){
         this.setPassengerId(passengerId);
         this.setStartLat(startLat);

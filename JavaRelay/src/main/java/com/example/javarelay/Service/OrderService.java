@@ -7,4 +7,6 @@ public interface OrderService {
 
     public Result createAndInsertOrder(PassengerDto passengerDto);
 
+    public Result changeOrderStatus(Long orderId,Integer fromStatus,Integer toStatus);
+
 }
