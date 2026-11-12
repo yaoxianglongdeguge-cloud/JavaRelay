@@ -18,8 +18,16 @@ public interface OrderMapper extends BaseMapper<Order> {
             "<if test='driverId != null'>, driver_id = #{driverId} </if>" +
             "WHERE id = #{orderId} AND status = #{fromStatus}" +
             "</script>")
-    int updateStatusWithOptimisticLock(@Param("orderId") Long orderId,
+    public int updateStatusWithOptimisticLock(@Param("orderId") Long orderId,
                                        @Param("fromStatus") Integer fromStatus,
                                        @Param("toStatus") Integer toStatus,
                                        @Param("driverId") Long driverId);
+
+    @Select("SELECT * FROM ride_order WHERE passenger_id = #{passengerId} " +
+            "AND status NOT IN (6, 7) ORDER BY create_time DESC LIMIT 1")
+    public Order passengerSelectUnFinshed(Long passengerId);
+
+    @Select("SELECT * FROM ride_order WHERE driver_id = #{driverId} " +
+            "AND status NOT IN (6, 7) ORDER BY create_time DESC LIMIT 1")
+    public Order driverSelectUnFinshed(Long driverId);
 }

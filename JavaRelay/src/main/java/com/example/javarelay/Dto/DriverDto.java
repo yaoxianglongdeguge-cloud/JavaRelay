@@ -4,5 +4,6 @@ import lombok.Data;
 
 @Data
 public class DriverDto {
-    Long id;
+    Long driverId;
+    Integer status;
 }

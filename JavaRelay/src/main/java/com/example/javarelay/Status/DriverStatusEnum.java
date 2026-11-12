@@ -2,8 +2,8 @@ package com.example.javarelay.status;
 
 public enum DriverStatusEnum {
 
-    LEISURE(0, "待派单"),
-    RECEIVING(2, "已接单");
+    LEISURE(0, "空闲"),
+    RECEIVING(1, "忙碌");
 
     private final int code;
     private final String desc;
