@@ -12,6 +12,7 @@ import com.example.javarelay.infra.GeoUtil;
 import com.example.javarelay.mapper.DriverMapper;
 import com.example.javarelay.mapper.OrderMapper;
 import com.example.javarelay.mapper.OrderStatusLogMapper;
+import com.example.javarelay.service.InformService;
 import com.example.javarelay.service.OrderService;
 import com.example.javarelay.service.PassengerOrderService;
 import com.example.javarelay.service.StrategysService;
@@ -48,6 +49,9 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
     StrategysService strategysService;
 
     @Autowired
+    InformService informService;
+
+    @Autowired
     private StringRedisTemplate redisTemplate;
 
 
@@ -77,19 +81,20 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
         try{
             result1 = orderService.createAndInsertOrder(passengerDto);
 
-        }catch(Exception e){
+        }catch(StatusChangeException e){
             return Result.fail(e.getMessage());
         }
 
-        Order order1 = (Order)result1.getData();
+        Order orderNew = (Order)result1.getData();
 
-        Result result2 = strategysService.putInfoCollector(order1.getId(),passengerDto);
+        //插入数据采集器
+        Result result2 = strategysService.putInfoCollector(orderNew.getId(),passengerDto);
         if(result2.getCode() != 200){
             return result2;
         }
 
         //开始分配司机
-        Result result = AssignDriver(passengerDto,order1.getId());
+        Result result = AssignDriver(passengerDto,orderNew.getId());
 
         if(result.getCode() != 200){
             return result;
@@ -98,14 +103,16 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
         DriverDto driverDto = (DriverDto) result.getData();
 
 
-
         //确定路线
-
+        Result resultPath = strategysService.findPathByStrategy(orderNew.getId());
 
 
         //预估金额
+        Result resultPreMoney = strategysService.preComputeMoney(orderNew.getId());
+
 
         //通知司机
+        informService.informDriver();
 
 
         return Result.success("分配成功,司机正在赶来");
@@ -170,6 +177,9 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
     @Override
     public Result CancelOrder(PassengerDto passengerDto) {
+
+
+
         return null;
     }
 

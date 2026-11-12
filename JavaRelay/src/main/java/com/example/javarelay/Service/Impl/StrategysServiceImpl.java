@@ -17,14 +17,19 @@ public class StrategysServiceImpl implements StrategysService {
     @Autowired
     Map<Long,InfoCollector> infoCollectors;
 
+    @Autowired
     Map<String, SelectDriverStrategy> selectDriverStrategys;
 
+    @Autowired
     Map<String, SelectPassengerStrategy> selectPassengerStrategys;
 
+    @Autowired
     Map<String, SelectPathStrategy> selectPathStrategys;
 
+    @Autowired
     Map<String, PreComputeStrategy> preComputeStrategys;
 
+    @Autowired
     Map<String, ComputeMoneyStrategy> computeMoneyStrategys;
 
 

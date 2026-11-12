@@ -48,7 +48,7 @@ public class OrderServiceImpl implements OrderService {
 
         }catch(DuplicateKeyException e) {
             //用唯一索引防止重复插入
-            throw new StatusChangeException("重复插入");
+            throw new StatusChangeException("ORDER_INSERT_FAIL");
 
         }
         //主键回填，得到订单id
