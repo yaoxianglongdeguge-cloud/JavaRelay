@@ -7,7 +7,7 @@ import java.io.Serializable;
 @Data
 public class Result implements Serializable {
 
-    private Integer code = 200;
+    private int code = 200;
 
     private String message = null;
 
