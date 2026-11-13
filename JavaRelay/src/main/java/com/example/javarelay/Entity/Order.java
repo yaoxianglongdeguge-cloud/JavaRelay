@@ -29,6 +29,7 @@ public class Order {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
+    //唯一索引，用来插入订单时防止重复
     private Integer activeFlag;
 
     public Order(Long passengerId,

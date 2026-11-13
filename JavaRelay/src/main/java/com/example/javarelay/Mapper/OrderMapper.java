@@ -23,11 +23,22 @@ public interface OrderMapper extends BaseMapper<Order> {
                                        @Param("toStatus") Integer toStatus,
                                        @Param("driverId") Long driverId);
 
+    @Update("<script>" +
+            "UPDATE ride_order SET active_flag = #{toFlag}, update_time = NOW() " +
+            "WHERE id = #{orderId} AND active_flag = #{fromFlag}" +
+            "</script>")
+    public int updateActiveFlag(@Param("orderId") Long orderId,
+                                              @Param("fromStatus") Integer fromFlag,
+                                              @Param("toStatus") Integer toFlag
+                                             );
+
+
     @Select("SELECT * FROM ride_order WHERE passenger_id = #{passengerId} " +
-            "AND status NOT IN (6, 7) ORDER BY create_time DESC LIMIT 1")
+            "AND active_flag == 1 ORDER BY create_time DESC LIMIT 1")
     public Order passengerSelectUnFinshed(Long passengerId);
 
     @Select("SELECT * FROM ride_order WHERE driver_id = #{driverId} " +
-            "AND status NOT IN (6, 7) ORDER BY create_time DESC LIMIT 1")
+            "AND active_flag == 1 ORDER BY create_time DESC LIMIT 1")
     public Order driverSelectUnFinshed(Long driverId);
+
 }

@@ -1,5 +1,6 @@
 package com.example.javarelay.service.Impl;
 
+import com.example.javarelay.constant.Constants;
 import com.example.javarelay.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.entity.Driver;
@@ -79,6 +80,20 @@ public class OrderServiceImpl implements OrderService {
         int rows1 = orderMapper.updateStatusWithOptimisticLock(orderId,fromStatus,toStatus,driverId);
         if(rows1 == 0){
             throw new StatusChangeException("ORDER_CHANGE_FAIL");
+        }else if(rows1 < 0){
+            throw new RuntimeException("数据库异常");
+        }
+
+        if(toStatus.equals(OrderStatusEnum.CANCELED.getCode()) ||
+                toStatus.equals(OrderStatusEnum.FINISHED.getCode())){
+
+            int rows3 = orderMapper.updateActiveFlag(orderId, Constants.ACTIVE_ORDER,Constants.FINISHED_ORDER);
+            if(rows3 == 0){
+                throw new StatusChangeException("ORDER_CHANGE_FAIL");
+            }else if(rows3 < 0){
+                throw new RuntimeException("数据库异常");
+            }
+
         }
 
         OrderStatusLog orderStatusLog = new OrderStatusLog(
@@ -90,13 +105,17 @@ public class OrderServiceImpl implements OrderService {
         );
 
         int rows = orderStatusLogMapper.insert(orderStatusLog);
-        if (rows <= 0) {
+        if (rows == 0) {
             throw new RuntimeException("订单流转记录插入失败");
+        }else if(rows < 0){
+            throw new RuntimeException("数据库异常");
         }
 
-        int row2 = driverMapper.updateStatusWithOptimisticLock(driverId,fromStatus2,toStatus2);
-        if(driverId != null && row2 == 0){
+        int rows2 = driverMapper.updateStatusWithOptimisticLock(driverId,fromStatus2,toStatus2);
+        if(driverId != null && rows2 == 0){
             throw new StatusChangeException("DRIVER_CHANGE_FAIL");
+        }else if(driverId != null && rows2 < 0){
+            throw new RuntimeException("数据库异常");
         }
 
 

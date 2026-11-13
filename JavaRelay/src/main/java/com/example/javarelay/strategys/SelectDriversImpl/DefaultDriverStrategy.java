@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class DistanceDriverStrategy implements SelectDriverStrategy {
+public class DefaultDriverStrategy implements SelectDriverStrategy {
     @Override
     public Result findDriverStrategy(InfoCollector infoCollector) {
         return null;
