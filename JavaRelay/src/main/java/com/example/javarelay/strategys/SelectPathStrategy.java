@@ -6,5 +6,7 @@ import com.example.javarelay.infocollect.InfoCollector;
 
 public interface SelectPathStrategy {
 
+    public String getType();
+
     public Result findPathStrategy(InfoCollector infoCollector);
 }

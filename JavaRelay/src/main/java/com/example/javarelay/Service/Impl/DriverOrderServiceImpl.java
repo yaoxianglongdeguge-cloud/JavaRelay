@@ -84,8 +84,8 @@ public class DriverOrderServiceImpl implements DriverOrderService {
         //释放redis锁
         RedisUtil.tryunLockDriver(driverId);
 
-        //通知司机
-        informService.informPassenger();
+        //通知用户
+        informService.informPassenger("取消");
 
         return Result.success("取消订单成功");
     }

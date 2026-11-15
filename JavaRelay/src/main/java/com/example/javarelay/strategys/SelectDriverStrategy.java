@@ -7,5 +7,8 @@ import com.example.javarelay.infocollect.InfoCollector;
 import java.util.List;
 
 public interface SelectDriverStrategy {
+
+    public String getType();
+
     public Result findDriverStrategy(InfoCollector infoCollector);
 }

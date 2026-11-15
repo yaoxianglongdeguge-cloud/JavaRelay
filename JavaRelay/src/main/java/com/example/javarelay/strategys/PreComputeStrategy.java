@@ -5,5 +5,7 @@ import com.example.javarelay.infocollect.InfoCollector;
 
 public interface PreComputeStrategy {
 
+    public String getType();
+
     public Result PreComputeStrategy(InfoCollector infoCollector);
 }

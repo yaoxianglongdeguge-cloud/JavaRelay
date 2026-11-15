@@ -9,31 +9,34 @@ import java.math.BigDecimal;
 @Data
 public class InfoCollector {
 
-    Long orderId;
+    private Long orderId;
 
     private String selectPassengerStrategy;
-    private Integer passengerStrategyMark;
+    private Integer passengerStrategyMark = null;
 
     private String selectDriverStrategy;
-    private Integer driverStrategyMark;
+    private Integer driverStrategyMark = null;
+
+    private String selectPathStrategyType;
+    private Integer pathStrategyMark = null;
 
     private String precomputeMoneyType;
-    private Integer precomMark;
+    private Integer precomMark = null;
 
     private String computeMoneyType;
-    private Integer computeMark;
+    private Integer computeMark = null;
 
-    private PassengerInfo passengerInfo;
 
-    @Data
-    public class PassengerInfo{
+    private Long passengerId;
 
-        Long passengerId;
+    private BigDecimal startLng;
+    private BigDecimal startLat;
+    private String startAddress;
 
-        private BigDecimal startLng;
-        private BigDecimal startLat;
-        private BigDecimal endLng;
-        private BigDecimal endLat;
-        private String city;
-    }
+
+    private BigDecimal endLng;
+    private BigDecimal endLat;
+    private String endAddress;
+
+
 }

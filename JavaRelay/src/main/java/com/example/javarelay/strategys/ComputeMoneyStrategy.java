@@ -5,6 +5,8 @@ import com.example.javarelay.infocollect.InfoCollector;
 
 public interface ComputeMoneyStrategy {
 
+    public String getType();
+
     public Result ComputeStrategy(InfoCollector infoCollector);
 
 }

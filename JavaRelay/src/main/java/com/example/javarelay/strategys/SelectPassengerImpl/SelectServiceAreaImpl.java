@@ -16,8 +16,14 @@ import static org.apache.ibatis.ognl.OgnlOps.doubleValue;
 
 public class SelectServiceAreaImpl implements SelectPassengerStrategy {
 
+    String type = "default";
+
     @Autowired
     StringRedisTemplate redisTemplate;
+
+    public String getType(){
+        return this.type;
+    }
 
     @Override
     public Result findPassengerStrategy(InfoCollector infoCollector) {

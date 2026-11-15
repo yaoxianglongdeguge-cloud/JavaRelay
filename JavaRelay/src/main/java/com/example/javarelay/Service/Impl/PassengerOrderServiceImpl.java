@@ -9,6 +9,7 @@ import com.example.javarelay.dto.RouteInfo;
 import com.example.javarelay.entity.Driver;
 import com.example.javarelay.entity.Order;
 import com.example.javarelay.entity.OrderDetail;
+import com.example.javarelay.entity.Passenger;
 import com.example.javarelay.exception.StatusChangeException;
 import com.example.javarelay.infocollect.InfoCollector;
 import com.example.javarelay.infra.GeoUtil;
@@ -125,94 +126,6 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
         return Result.success("分配成功,司机正在赶来");
     }
 
-    public Result ReDispatchOrder(PassengerDto passengerDto){
-
-        if(passengerCheck(passengerDto).equals(false)){
-            return Result.fail("信息不全");
-        }
-
-        Long passengerId = passengerDto.getPassengerId();
-
-        Order order;
-        try{
-            order = orderMapper.passengerSelectUnFinshed(passengerId);
-        }catch(Exception e){
-            return Result.fail("系统出问题");
-        }
-
-        if(order == null){
-            return Result.fail("不存在需要重派的订单");
-        }
-
-        String status = OrderStatusEnum.of(order.getStatus()).getDesc();
-        if(!status.equals("待派单")){
-            return Result.fail("不存在需要重派的订单");
-        }
-
-
-        Result result = DispatchOrder(passengerDto,order);
-        if(result.getCode() != 200){
-            return result;
-        }
-
-        return Result.success("派单成功");
-    }
-
-    @Override
-    public Result CancelOrder(PassengerDto passengerDto) {
-
-        if(passengerCheck(passengerDto).equals(false)){
-            return Result.fail("信息不全");
-        }
-
-        Long passengerId = passengerDto.getPassengerId();
-
-        //查找该用户未结束订单
-        Order order;
-        try{
-            order = orderMapper.passengerSelectUnFinshed(passengerId);
-        }catch (Exception e){
-            return Result.fail("系统问题");
-        }
-
-        if(order == null){
-            return Result.success("没有未完成订单");
-        }
-
-        Long orderId = order.getId();
-        Integer fromstatus = order.getStatus();
-        if(fromstatus >= OrderStatusEnum.ARRIVED.getCode()){
-            return Result.fail("司机已接单，不能取消");
-        }
-        Long driverId = order.getDriverId();
-        //如果没有driver，那就是null，也能匹配
-
-        //修改数据库状态
-        try{
-            orderService.changeOrderStatus(orderId,passengerId,
-                    fromstatus,
-                    OrderStatusEnum.CANCELED.getCode(),
-                    OrderOperatorEnum.PASSENGER.getCode(),
-
-                    driverId,
-                    DriverStatusEnum.RECEIVING.getCode(),
-                    DriverStatusEnum.LEISURE.getCode());
-
-        }catch(StatusChangeException e) {
-
-            return Result.success("订单已经被取消");
-        }
-
-        //释放redis锁
-        if(driverId != null){
-            RedisUtil.tryunLockDriver(driverId);
-        }
-
-        //通知司机
-        informService.informDriver();
-
-        return Result.success("取消订单成功");
-    }
 
     @Override
     public Result FinishOrder(PassengerDto passengerDto) {
@@ -264,10 +177,15 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
         }
 
         //通知司机
-        informService.informDriver();
+        informService.informDriver("已结束");
 
         //计算金额
         strategysService.ComputeMoney(orderId);
+
+        Result result = strategysService.deleteInfoCollector(orderId);
+        if(result.getCode() != 200){
+            return Result.fail("系统出问题");
+        }
 
 
         return Result.success("订单已结束");
@@ -281,9 +199,7 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
         return true;
     }
 
-    private Result AssignDriver(PassengerDto passengerDto,Long orderId){
-
-        Long passengerId = passengerDto.getPassengerId();
+    private Result AssignDriver(Long passengerId,Long orderId){
 
         //确定是否在服务范围内
         Result result = strategysService.findPassengerByStrategy(orderId);
@@ -353,9 +269,70 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
     }
 
+    @Override
+    public Result CancelOrder(PassengerDto passengerDto) {
+
+        if(passengerCheck(passengerDto).equals(false)){
+            return Result.fail("信息不全");
+        }
+
+        Long passengerId = passengerDto.getPassengerId();
+
+        //查找该用户未结束订单
+        Order order;
+        try{
+            order = orderMapper.passengerSelectUnFinshed(passengerId);
+        }catch (Exception e){
+            return Result.fail("系统问题");
+        }
+
+        if(order == null){
+            return Result.success("没有未完成订单");
+        }
+
+        Long orderId = order.getId();
+        Integer fromstatus = order.getStatus();
+        if(fromstatus >= OrderStatusEnum.ARRIVED.getCode()){
+            return Result.fail("司机已接单，不能取消");
+        }
+        Long driverId = order.getDriverId();
+        //如果没有driver，那就是null，也能匹配
+
+        //修改数据库状态
+        try{
+            orderService.changeOrderStatus(orderId,passengerId,
+                    fromstatus,
+                    OrderStatusEnum.CANCELED.getCode(),
+                    OrderOperatorEnum.PASSENGER.getCode(),
+
+                    driverId,
+                    DriverStatusEnum.RECEIVING.getCode(),
+                    DriverStatusEnum.LEISURE.getCode());
+
+        }catch(StatusChangeException e) {
+
+            return Result.success("订单已经被取消");
+        }
+
+        //释放redis锁
+        if(driverId != null){
+            RedisUtil.tryunLockDriver(driverId);
+        }
+
+        //通知司机
+        informService.informDriver("已取消");
+
+        Result result = strategysService.deleteInfoCollector(orderId);
+        if(result.getCode() != 200){
+            return Result.fail("系统出问题");
+        }
+
+        return Result.success("取消订单成功");
+    }
+
     private Result DispatchOrder(PassengerDto passengerDto,Order order){
 
-        Result result = AssignDriver(passengerDto,order.getId());
+        Result result = AssignDriver(passengerDto.getPassengerId(),order.getId());
 
         if(result.getCode() != 200){
             return result;
@@ -372,6 +349,9 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
                 passengerDto.getEndLng(),
                 passengerDto.getEndLat()
         );
+
+        routeInfo.setStartAddress(passengerDto.getStartAddress());
+        routeInfo.setEndAddress(passengerDto.getEndAddress());
 
         //预估金额
         Result resultPreMoney = strategysService.preComputeMoney(order.getId());
@@ -390,9 +370,81 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
 
         //通知司机
-        informService.informDriver();
+        informService.informDriver("已派单");
 
         return Result.success("派单成功");
     }
 
+    public Result ReDispatchOrder(Long orderId,Long passengerId) {
+
+        Order order;
+        InfoCollector infoCollector;
+        while (true) {
+
+            try {
+                order = orderMapper.passengerSelectUnFinshed(passengerId);
+            } catch (Exception e) {
+                return Result.fail("系统出问题");
+            }
+
+            if (order == null) {
+                return Result.fail("不存在需要重派的订单");
+            }
+
+            String status = OrderStatusEnum.of(order.getStatus()).getDesc();
+            if (!status.equals("待派单")) {
+                return Result.fail("不存在需要重派的订单");
+            }
+
+            infoCollector = strategysService.getInfoCollector(orderId);
+            if (infoCollector == null) continue;
+            break;
+
+        }
+
+
+        Result result = AssignDriver(passengerId, order.getId());
+
+        if (result.getCode() != 200) {
+            return result;
+        }
+
+        DriverDto driverDto = (DriverDto) result.getData();
+
+        //确定路线
+        Result resultPath = strategysService.findPathByStrategy(order.getId());
+        RouteInfo routeInfo = (RouteInfo) resultPath.getData();
+        routeInfo.setStartAndEnd(
+                infoCollector.getStartLng(),
+                infoCollector.getStartLat(),
+                infoCollector.getEndLng(),
+                infoCollector.getEndLat()
+        );
+
+        routeInfo.setStartAddress(infoCollector.getStartAddress());
+        routeInfo.setEndAddress(infoCollector.getEndAddress());
+
+        //预估金额
+        Result resultPreMoney = strategysService.preComputeMoney(order.getId());
+        BigDecimal preMoney = (BigDecimal) resultPreMoney.getData();
+
+        try {
+            orderDetailMapper.initOrderDetail(
+                    order.getId(),
+                    driverDto.getDriverId(),
+                    preMoney,
+                    JSON.toJSONString(routeInfo)
+            );
+        } catch (Exception e) {
+            return Result.fail("系统出问题");
+        }
+
+
+        //通知司机
+        informService.informDriver("已派单");
+
+        return Result.success("派单成功");
+
+
+        }
 }
