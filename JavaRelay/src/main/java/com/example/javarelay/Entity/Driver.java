@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("driver")
+@TableName("drivers")
 public class Driver {
     @TableId(type = IdType.AUTO)
     private Long id;

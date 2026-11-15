@@ -1,16 +1,20 @@
 package com.example.javarelay.service.Impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.constant.RedisPefix;
 import com.example.javarelay.dto.DriverDto;
 import com.example.javarelay.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
+import com.example.javarelay.dto.RouteInfo;
 import com.example.javarelay.entity.Driver;
 import com.example.javarelay.entity.Order;
+import com.example.javarelay.entity.OrderDetail;
 import com.example.javarelay.exception.StatusChangeException;
 import com.example.javarelay.infocollect.InfoCollector;
 import com.example.javarelay.infra.GeoUtil;
 import com.example.javarelay.infra.RedisUtil;
 import com.example.javarelay.mapper.DriverMapper;
+import com.example.javarelay.mapper.OrderDetailMapper;
 import com.example.javarelay.mapper.OrderMapper;
 import com.example.javarelay.mapper.OrderStatusLogMapper;
 import com.example.javarelay.service.InformService;
@@ -44,6 +48,9 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
     @Autowired
     DriverMapper driverMapper;
+
+    @Autowired
+    OrderDetailMapper orderDetailMapper;
 
     @Autowired
     OrderStatusLogMapper orderStatusLogMapper;
@@ -356,13 +363,30 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
         DriverDto driverDto = (DriverDto) result.getData();
 
-
         //确定路线
         Result resultPath = strategysService.findPathByStrategy(order.getId());
-
+        RouteInfo routeInfo = (RouteInfo) resultPath.getData();
+        routeInfo.setStartAndEnd(
+                passengerDto.getStartLng(),
+                passengerDto.getStartLat(),
+                passengerDto.getEndLng(),
+                passengerDto.getEndLat()
+        );
 
         //预估金额
         Result resultPreMoney = strategysService.preComputeMoney(order.getId());
+        BigDecimal preMoney = (BigDecimal)resultPreMoney.getData();
+
+        try{
+            orderDetailMapper.initOrderDetail(
+                    order.getId(),
+                    driverDto.getDriverId(),
+                    preMoney,
+                    JSON.toJSONString(routeInfo)
+            );
+        }catch (Exception e){
+            return Result.fail("系统出问题");
+        }
 
 
         //通知司机

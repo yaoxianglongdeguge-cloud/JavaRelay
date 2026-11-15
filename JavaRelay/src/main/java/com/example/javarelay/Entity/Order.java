@@ -7,17 +7,12 @@ import java.time.LocalDateTime;
 import com.example.javarelay.constant.*;
 
 @Data
-@TableName("ride_order")
+@TableName("orders")
 public class Order {
 
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long passengerId;
-
-    private BigDecimal startLng;
-    private BigDecimal startLat;
-    private BigDecimal endLng;
-    private BigDecimal endLat;
 
     private Integer status;
 
@@ -35,10 +30,6 @@ public class Order {
     public Order(Long passengerId,
     Integer status){
         this.setPassengerId(passengerId);
-        this.setStartLat(startLat);
-        this.setStartLng(startLng);
-        this.setEndLat(endLat);
-        this.setEndLng(endLng);
         this.setStatus(status);
         this.setActiveFlag(Constants.ACTIVE_ORDER);
     }

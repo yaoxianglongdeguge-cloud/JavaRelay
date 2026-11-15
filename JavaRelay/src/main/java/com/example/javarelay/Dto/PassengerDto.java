@@ -17,5 +17,10 @@ public class PassengerDto {
 
     private String computeMoneyType;
 
+    private BigDecimal startLng;
+    private BigDecimal startLat;
+
+    private BigDecimal endLng;
+    private BigDecimal endLat;
 
 }

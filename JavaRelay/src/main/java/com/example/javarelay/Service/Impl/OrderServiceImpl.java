@@ -3,12 +3,15 @@ package com.example.javarelay.service.Impl;
 import com.example.javarelay.constant.Constants;
 import com.example.javarelay.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
+import com.example.javarelay.dto.RouteInfo;
 import com.example.javarelay.entity.Driver;
 import com.example.javarelay.entity.Order;
+import com.example.javarelay.entity.OrderDetail;
 import com.example.javarelay.entity.OrderStatusLog;
 import com.example.javarelay.exception.BusinessException;
 import com.example.javarelay.exception.StatusChangeException;
 import com.example.javarelay.mapper.DriverMapper;
+import com.example.javarelay.mapper.OrderDetailMapper;
 import com.example.javarelay.mapper.OrderMapper;
 import com.example.javarelay.mapper.OrderStatusLogMapper;
 import com.example.javarelay.service.OrderService;
@@ -33,6 +36,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     OrderStatusLogMapper orderStatusLogMapper;
+
+    @Autowired
+    OrderDetailMapper orderDetailMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -67,6 +73,17 @@ public class OrderServiceImpl implements OrderService {
         if (rows <= 0) {
             throw new RuntimeException("订单流转记录插入失败");
         }
+
+        OrderDetail orderDetail= new OrderDetail();
+
+        try{
+            orderDetailMapper.insert(orderDetail);
+
+        }catch(DuplicateKeyException e) {
+            throw new StatusChangeException("订单详情表插入失败");
+
+        }
+
 
         return Result.success(order1);
     }
