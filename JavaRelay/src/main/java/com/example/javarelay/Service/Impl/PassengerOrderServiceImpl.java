@@ -49,13 +49,7 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
     OrderMapper orderMapper;
 
     @Autowired
-    DriverMapper driverMapper;
-
-    @Autowired
     OrderDetailMapper orderDetailMapper;
-
-    @Autowired
-    OrderStatusLogMapper orderStatusLogMapper;
 
     @Autowired
     OrderService orderService;
@@ -65,12 +59,6 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
     @Autowired
     InformService informService;
-
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    @Autowired
-    private RedisUtil redisUtil;
 
 
     @Override
@@ -151,7 +139,7 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
         Long orderId = order.getId();
         Integer fromstatus = order.getStatus();
-        if(fromstatus < OrderStatusEnum.ARRIVED.getCode()){
+        if(fromstatus.compareTo(OrderStatusEnum.ARRIVED.getCode()) < 0){
             return Result.fail("司机未到达");
         }
         Long driverId = order.getDriverId();
@@ -312,8 +300,8 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
         Long orderId = order.getId();
         Integer fromstatus = order.getStatus();
-        if(fromstatus >= OrderStatusEnum.ARRIVED.getCode()){
-            return Result.fail("司机已接单，不能取消");
+        if(fromstatus.compareTo(OrderStatusEnum.ARRIVED.getCode()) >= 0){
+            return Result.fail("司机已到达，不能取消");
         }
         Long driverId = order.getDriverId();
         //如果没有driver，那就是null，也能匹配
