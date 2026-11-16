@@ -1,5 +1,6 @@
 package com.example.javarelay.service.Impl;
 
+import com.example.javarelay.constant.InformTypeEnum;
 import com.example.javarelay.dto.DriverDto;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.entity.Order;
@@ -85,7 +86,7 @@ public class DriverOrderServiceImpl implements DriverOrderService {
         RedisUtil.tryunLockDriver(driverId);
 
         //通知用户
-        informService.informPassenger("取消");
+        informService.informPassenger(InformTypeEnum.STATUS_CONFIRM.getCode(),"已取消");
 
         return Result.success("取消订单成功");
     }

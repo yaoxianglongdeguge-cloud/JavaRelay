@@ -4,8 +4,8 @@ import com.example.javarelay.dto.Result;
 
 public interface InformService {
 
-    public Result informPassenger(String message);
+    public Result informPassenger(Integer msgType,String message);
 
-    public Result informDriver(String message);
+    public Result informDriver(Integer msgType,String message);
 
 }
