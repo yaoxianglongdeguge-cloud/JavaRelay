@@ -17,7 +17,7 @@ public class ComputeMoneyImpl implements ComputeMoneyStrategy {
     }
 
     @Override
-    public Result ComputeStrategy(InfoCollector infoCollector) {
+    public Result ComputeStrategy(Long orderId) {
 
 
 

@@ -10,15 +10,15 @@ public class ComputeMoneyMessage extends MessageCell {
 
     @Data
     public class msg{
-        InfoCollector infoCollector;
+        Long orderId;
 
-        public msg(InfoCollector infoCollector){
-            this.infoCollector = infoCollector;
+        public msg(Long orderId){
+            this.orderId = orderId;
         }
     }
 
-    public ComputeMoneyMessage(InfoCollector infoCollector){
-        this.setMsg(new msg(infoCollector));
+    public ComputeMoneyMessage(Long orderId){
+        this.setMsg(new msg(orderId));
     }
 
 }

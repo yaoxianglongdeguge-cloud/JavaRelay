@@ -13,4 +13,6 @@ public interface PassengerOrderService {
     public Result CancelOrder(PassengerDto passengerDto);
     public Result FinishOrder(PassengerDto passengerDto);
 
+    public Result ReComputeMoney(PassengerDto passengerDto, Long orderId);
+
 }

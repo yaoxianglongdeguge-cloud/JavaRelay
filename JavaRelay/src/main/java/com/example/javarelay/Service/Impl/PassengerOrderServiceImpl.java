@@ -194,6 +194,24 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
     }
 
+    public Result ReComputeMoney(PassengerDto passengerDto, Long orderId){
+
+        Order order;
+        try{
+            order = orderMapper.passengerSelectUnFinshed(passengerDto.getPassengerId());
+        }catch (Exception e){
+            return Result.fail("系统出问题");
+        }
+        if(order != null){
+            return Result.fail("订单还未结束");
+        }
+
+        strategysService.ComputeMoney(orderId);
+
+        return Result.success("订单金额计算中");
+
+    }
+
     private Boolean passengerCheck(PassengerDto passengerDto){
         if(passengerDto == null || passengerDto.getPassengerId() == null){
             return false;

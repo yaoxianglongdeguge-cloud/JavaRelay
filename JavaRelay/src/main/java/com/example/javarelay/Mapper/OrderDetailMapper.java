@@ -3,6 +3,7 @@ package com.example.javarelay.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.javarelay.entity.OrderDetail;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.math.BigDecimal;
@@ -30,5 +31,8 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
     public int updateActualPrice(
             @Param("orderId") Long orderId,
             @Param("actual_price") BigDecimal actual_price);
+
+    @Select("select acpricetype from order_detail where order_id = #{orderId}")
+    public String getActualPriceType(@Param("orderId") Long orderId);
 
 }

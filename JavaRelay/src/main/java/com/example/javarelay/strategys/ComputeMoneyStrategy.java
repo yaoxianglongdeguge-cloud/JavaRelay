@@ -7,6 +7,6 @@ public interface ComputeMoneyStrategy {
 
     public String getType();
 
-    public Result ComputeStrategy(InfoCollector infoCollector);
+    public Result ComputeStrategy(Long orderId);
 
 }

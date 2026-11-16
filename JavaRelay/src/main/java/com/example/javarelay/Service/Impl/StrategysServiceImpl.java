@@ -146,13 +146,8 @@ public class StrategysServiceImpl implements StrategysService {
     @Override
     public Result ComputeMoney(Long orderId) {
 
-        InfoCollector infoCollector = infoCollectors.get(orderId);
 
-        if(infoCollector.getComputeMark() == null){
-            return Result.fail("没有设置计价策略");
-        }
-
-        ComputeMoneyMessage computeMoneyMessage = new ComputeMoneyMessage(infoCollector);
+        ComputeMoneyMessage computeMoneyMessage = new ComputeMoneyMessage(orderId);
         computeMoneyMessage.setTopic(Constants.MESSAGE_COMPUTEMONEY_TOPIC);
 
         if(!messageDispatcher.putMessage(computeMoneyMessage)){

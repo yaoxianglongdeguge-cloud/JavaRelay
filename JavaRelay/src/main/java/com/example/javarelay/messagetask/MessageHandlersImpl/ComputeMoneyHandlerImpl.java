@@ -47,11 +47,23 @@ public class ComputeMoneyHandlerImpl implements MessageHandler {
 
         ComputeMoneyMessage computeMoneyMessage = (ComputeMoneyMessage) messageCell;
         ComputeMoneyMessage.msg msg = (ComputeMoneyMessage.msg)computeMoneyMessage.getMsg();
-        InfoCollector infoCollector = msg.getInfoCollector();
-        ComputeMoneyStrategy computeMoneyStrategy = computeMoneyStrategys.get(infoCollector.getComputeMoneyType());
-        Result result = computeMoneyStrategy.ComputeStrategy(infoCollector);
+        Long orderId = msg.getOrderId();
+        String type = null;
+        try{
+            type = orderDetailMapper.getActualPriceType(orderId);
+        }catch (Exception e){
+            log.info("查找金额计算策略失败");
+            return false;
+        }
+
+        if(type == null){
+            log.info("查找金额计算策略失败");
+            return false;
+        }
+
+        ComputeMoneyStrategy computeMoneyStrategy = computeMoneyStrategys.get(type);
+        Result result = computeMoneyStrategy.ComputeStrategy(orderId);
         BigDecimal money = (BigDecimal) result.getData();
-        Long orderId = infoCollector.getOrderId();
 
         if(money == null){
             return false;
