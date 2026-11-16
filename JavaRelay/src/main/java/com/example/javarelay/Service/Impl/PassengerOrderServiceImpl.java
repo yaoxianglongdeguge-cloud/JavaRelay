@@ -178,7 +178,8 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
         }
 
         //通知司机
-        informService.informDriver(InformTypeEnum.STATUS_CONFIRM.getCode(),"已结束");
+        informService.informDriver(orderId,driverId,
+                InformTypeEnum.STATUS_CONFIRM.getCode(),"已结束");
 
         //计算金额
         strategysService.ComputeMoney(orderId);
@@ -321,7 +322,8 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
         }
 
         //通知司机
-        informService.informDriver(InformTypeEnum.STATUS_CONFIRM.getCode(),"已取消");
+        informService.informDriver(orderId,driverId,
+                InformTypeEnum.STATUS_CONFIRM.getCode(),"已取消");
 
         Result result = strategysService.deleteInfoCollector(orderId);
         if(result.getCode() != 200){
@@ -371,7 +373,8 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
 
         //通知司机
-        informService.informDriver(InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
+        informService.informDriver(order.getId(),driverDto.getDriverId(),
+                InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
 
         return Result.success("派单成功");
     }
@@ -442,7 +445,8 @@ public class PassengerOrderServiceImpl implements PassengerOrderService {
 
 
         //通知司机
-        informService.informDriver(InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
+        informService.informDriver(orderId,driverDto.getDriverId(),
+                InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
 
         return Result.success("派单成功");
 

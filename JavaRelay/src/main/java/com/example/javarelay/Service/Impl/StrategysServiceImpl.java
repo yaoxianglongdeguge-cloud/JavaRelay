@@ -41,9 +41,6 @@ public class StrategysServiceImpl implements StrategysService {
     List<PreComputeStrategy> preComputeStrategyList;
     Map<String, PreComputeStrategy> preComputeStrategys = new HashMap<>();
 
-    @Autowired
-    List<ComputeMoneyStrategy> computeMoneyStrategyList;
-    Map<String, ComputeMoneyStrategy> computeMoneyStrategys = new HashMap<>();
 
     @Autowired
     MessageDispatcher messageDispatcher;
@@ -66,9 +63,6 @@ public class StrategysServiceImpl implements StrategysService {
             preComputeStrategys.put(s.getType(),s);
         }
 
-        for(ComputeMoneyStrategy s:computeMoneyStrategyList){
-            computeMoneyStrategys.put(s.getType(),s);
-        }
 
     }
 

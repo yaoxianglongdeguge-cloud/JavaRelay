@@ -25,4 +25,10 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
             @Param("estimatedPrice") BigDecimal estimatedPrice,
             @Param("routeSnapshot") String routeSnapshot);
 
+    @Update("UPDATE order_detail SET actual_price = #{actual_price} where order_id = #{orderId} and " +
+            "actual_price is null")
+    public int updateActualPrice(
+            @Param("orderId") Long orderId,
+            @Param("actual_price") BigDecimal actual_price);
+
 }

@@ -13,9 +13,9 @@ public class InformServiceImpl implements InformService {
     MessageDispatcher messageDispatcher;
 
     @Override
-    public Result informPassenger(Integer msgType,String message) {
+    public Result informPassenger(Long orderId,Long toId,Integer msgType,String message) {
 
-        InformMessage informMessage = new InformMessage(Constants.TO_PASSENGER,msgType,message);
+        InformMessage informMessage = new InformMessage(Constants.TO_PASSENGER,orderId,toId,msgType,message);
         informMessage.setTopic(Constants.MESSAGE_INFORM_TOPIC);
         messageDispatcher.putMessage(informMessage);
 
@@ -23,9 +23,9 @@ public class InformServiceImpl implements InformService {
     }
 
     @Override
-    public Result informDriver(Integer msgType,String message) {
+    public Result informDriver(Long orderId,Long toId,Integer msgType,String message) {
 
-        InformMessage informMessage = new InformMessage(Constants.TO_DRIVER,msgType,message);
+        InformMessage informMessage = new InformMessage(Constants.TO_DRIVER,orderId,toId,msgType,message);
         informMessage.setTopic(Constants.MESSAGE_INFORM_TOPIC);
         messageDispatcher.putMessage(informMessage);
 

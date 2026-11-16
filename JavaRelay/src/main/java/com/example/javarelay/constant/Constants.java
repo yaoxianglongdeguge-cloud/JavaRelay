@@ -15,9 +15,13 @@ public class Constants {
     public static final String MESSAGE_COMPUTEMONEY_TOPIC = "computemoney";
     public static final String MESSAGE_INFORM_TOPIC = "inform";
 
-    public static final Integer TO_DRIVER = 1;
-    public static final Integer TO_PASSENGER = 2;
+    public static final Integer DRIVER = 1;
+    public static final Integer PASSENGER = 2;
+
+    public static final Integer TO_DRIVER = DRIVER;
+    public static final Integer TO_PASSENGER = PASSENGER;
 
     public static final Integer ORDER_TIMEOUT_TIME = 15;
+
 
 }
