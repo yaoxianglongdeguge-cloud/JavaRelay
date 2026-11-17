@@ -1,7 +1,7 @@
 package com.example.javarelay;
 
-import com.example.javarelay.dto.PassengerDto;
-import com.example.javarelay.service.OrderService;
+import com.example.javarelay.statustransition.dto.PassengerDto;
+import com.example.javarelay.statustransition.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

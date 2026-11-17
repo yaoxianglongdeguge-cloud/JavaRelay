@@ -1,0 +1,57 @@
+package com.example.javarelay.inform.massagetask.messagehandlersimpl;
+
+import com.example.javarelay.config.RootInformConfig;
+import com.example.javarelay.statustransition.config.MessageTaskConfig;
+import com.example.javarelay.inform.constants.InformTypeEnum;
+import com.example.javarelay.infra.messagetask.MessageCell;
+import com.example.javarelay.inform.massagetask.messagecells.InformMessage;
+import com.example.javarelay.infra.messagetask.MessageHandler;
+import com.example.javarelay.infra.timeouttask.TimeoutTaskDispatcher;
+import com.example.javarelay.infra.websocket.MyWebSocketHandler;
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class InformHandler implements MessageHandler {
+
+    @Autowired
+    TimeoutTaskDispatcher timeoutTaskDispatcher;
+
+    @Autowired
+    MyWebSocketHandler webSocketHandler;
+
+    public String topic = MessageTaskConfig.MESSAGE_INFORM_TOPIC;
+
+    @Override
+    public String getTopic() {
+        return topic;
+    }
+
+
+    @Override
+    public Boolean handler(MessageCell messageCell) {
+
+        InformMessage informMessage = (InformMessage) messageCell;
+        InformMessage.msg msg = (InformMessage.msg) informMessage.getMsg();
+        Integer toWho = msg.getToWho();
+        Integer type = msg.getMsgType();
+        String message = msg.getMessage();
+        Long orderId = msg.getOrderId();
+
+        if(type == InformTypeEnum.STATUS_CONFIRM.getCode()){
+
+            //通知对方来确认状态
+            informStatusConfirm(toWho,msg.getToId(),message);
+
+            if(toWho.equals(RootInformConfig.TO_DRIVER) && message.equals("已派单")){
+                //如果是通知司机来接单，那还要维护超时任务，防止司机长时间不接单
+                timeoutTaskDispatcher.addTimeoutTask(orderId);
+            }
+
+        }
+
+        return true;
+    }
+
+    public void informStatusConfirm(Integer toWho,Long toId,String message){
+        webSocketHandler.sendToUser(toWho,toId,message);
+    }
+}

@@ -1,8 +1,8 @@
 package com.example.javarelay.config;
 
-import com.example.javarelay.interceptor.AuthHandshakeInterceptor;
-import com.example.javarelay.websocket.MyWebSocketHandler;
-import com.example.javarelay.websocket.UserHandshakeHandler;
+import com.example.javarelay.infra.websocket.AuthHandshakeInterceptor;
+import com.example.javarelay.infra.websocket.MyWebSocketHandler;
+import com.example.javarelay.infra.websocket.UserHandshakeHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;

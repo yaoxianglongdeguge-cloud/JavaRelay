@@ -1,9 +1,7 @@
 package com.example.javarelay.infra;
 
-import com.example.javarelay.constant.RedisPefix;
-import com.example.javarelay.dto.DriverDto;
-import com.example.javarelay.dto.PassengerDto;
-import com.example.javarelay.status.DriverStatusEnum;
+import com.example.javarelay.statustransition.constants.RedisPefix;
+import com.example.javarelay.statustransition.statusenum.DriverStatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
