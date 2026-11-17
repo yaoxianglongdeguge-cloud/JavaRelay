@@ -11,6 +11,7 @@ import com.example.javarelay.mapper.DriverMapper;
 import com.example.javarelay.mapper.OrderMapper;
 import com.example.javarelay.mapper.OrderStatusLogMapper;
 import com.example.javarelay.messagetask.MessageCells.ComputeMoneyMessage;
+import com.example.javarelay.messagetask.MessageCells.ReDispatchMessage;
 import com.example.javarelay.messagetask.MessageDispatcher;
 import com.example.javarelay.service.DriverOrderService;
 import com.example.javarelay.service.InformService;
@@ -247,12 +248,14 @@ public class DriverOrderServiceImpl implements DriverOrderService {
             return Result.success("订单已经结束");
         }
 
-        ComputeMoneyMessage computeMoneyMessage = new ComputeMoneyMessage(orderId);
-        computeMoneyMessage.setTopic(Constants.MESSAGE_REDISPATCH_TOPIC);
+        ReDispatchMessage reDispatchMessage = new ReDispatchMessage(orderId,passengerId);
+        reDispatchMessage.setTopic(Constants.MESSAGE_REDISPATCH_TOPIC);
 
-        if(!messageDispatcher.putMessage(computeMoneyMessage)){
+        if(!messageDispatcher.putMessage(reDispatchMessage)){
             return Result.fail("信息投递失败");
         }
+
+        informService.informPassenger(orderId,passengerId,InformTypeEnum.STATUS_CONFIRM.getCode(),"已拒单");
 
         return Result.success("已拒单");
 
