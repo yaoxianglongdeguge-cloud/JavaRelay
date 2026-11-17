@@ -44,10 +44,6 @@ public class OrderDetail {
     }
 
 
-
-    /**
-     * 写入前调用：将 RouteInfo 对象转成 JSON，存进 routeSnapshot
-     */
     public void serializeRouteInfo(RouteInfo info) {
         if (info != null) {
             this.routeInfo = info;
@@ -55,9 +51,6 @@ public class OrderDetail {
         }
     }
 
-    /**
-     * 读取后调用：将 routeSnapshot 里的 JSON 还原成 RouteInfo 对象
-     */
     public RouteInfo deserializeRouteInfo() {
         if (this.routeSnapshot != null && !this.routeSnapshot.isEmpty()) {
             this.routeInfo = JSON.parseObject(this.routeSnapshot, RouteInfo.class);

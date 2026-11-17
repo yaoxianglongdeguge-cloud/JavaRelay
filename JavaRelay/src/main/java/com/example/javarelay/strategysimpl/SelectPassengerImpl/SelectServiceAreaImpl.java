@@ -1,6 +1,6 @@
 package com.example.javarelay.strategysimpl.SelectPassengerImpl;
 
-import com.example.javarelay.statustransition.constants.RedisPefix;
+import com.example.javarelay.rediscommon.RedisPefix;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.infra.GeoUtil;
 import com.example.javarelay.statustransition.infocollect.InfoCollector;

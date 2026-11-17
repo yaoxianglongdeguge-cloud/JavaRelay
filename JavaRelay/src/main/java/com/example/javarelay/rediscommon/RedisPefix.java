@@ -1,4 +1,4 @@
-package com.example.javarelay.statustransition.constants;
+package com.example.javarelay.rediscommon;
 
 public class RedisPefix {
 
