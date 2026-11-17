@@ -6,9 +6,7 @@ public enum OrderStatusEnum {
     WAITING_DISPATCH(0, "待派单"),
     DISPATCHED(1, "已派单"),
     RECEIVED(2, "已接单"),
-    ONROAD(3,"行程中"),
     ARRIVED(4,"已到达"),
-    WAITING_CONFIRM(5,"待确认"),
     CANCELED(6, "已取消"),
     FINISHED(7, "已完成");
 
@@ -19,6 +17,10 @@ public enum OrderStatusEnum {
     OrderStatusEnum(int code, String desc) {
         this.code = code;
         this.desc = desc;
+    }
+
+    public static Integer[] getCancelFromStatus(){
+        return new Integer[]{0,1,2};
     }
 
     public int getCode() { return code; }

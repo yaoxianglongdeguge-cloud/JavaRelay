@@ -94,7 +94,15 @@ public class OrderServiceImpl implements OrderService {
                                     Integer fromStatus,Integer toStatus,Integer operator,
                                     Long driverId,Integer fromStatus2,Integer toStatus2){
 
-        int rows1 = orderMapper.updateStatusWithOptimisticLock(orderId,fromStatus,toStatus,driverId);
+
+        int rows1 = 0;
+        if(toStatus.equals(OrderStatusEnum.CANCELED.getCode())){
+            rows1 = orderMapper.updateCancelWithOptimisticLock(orderId,
+                    OrderStatusEnum.getCancelFromStatus()
+                    ,toStatus,driverId);
+        }else{
+            rows1 = orderMapper.updateStatusWithOptimisticLock(orderId,fromStatus,toStatus,driverId);
+        }
         if(rows1 == 0){
             throw new StatusChangeException("ORDER_CHANGE_FAIL");
         }else if(rows1 < 0){

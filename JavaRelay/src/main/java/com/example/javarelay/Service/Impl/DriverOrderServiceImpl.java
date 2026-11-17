@@ -1,5 +1,6 @@
 package com.example.javarelay.service.Impl;
 
+import com.example.javarelay.constant.Constants;
 import com.example.javarelay.constant.InformTypeEnum;
 import com.example.javarelay.dto.DriverDto;
 import com.example.javarelay.dto.Result;
@@ -9,6 +10,8 @@ import com.example.javarelay.infra.RedisUtil;
 import com.example.javarelay.mapper.DriverMapper;
 import com.example.javarelay.mapper.OrderMapper;
 import com.example.javarelay.mapper.OrderStatusLogMapper;
+import com.example.javarelay.messagetask.MessageCells.ComputeMoneyMessage;
+import com.example.javarelay.messagetask.MessageDispatcher;
 import com.example.javarelay.service.DriverOrderService;
 import com.example.javarelay.service.InformService;
 import com.example.javarelay.service.OrderService;
@@ -40,6 +43,8 @@ public class DriverOrderServiceImpl implements DriverOrderService {
     @Autowired
     InformService informService;
 
+    @Autowired
+    MessageDispatcher messageDispatcher;
 
     @Override
     public Result CancelOrder(DriverDto driverDto) {
@@ -129,7 +134,7 @@ public class DriverOrderServiceImpl implements DriverOrderService {
             orderService.changeOrderStatus(orderId,passengerId,
                     fromstatus,
                     OrderStatusEnum.FINISHED.getCode(),
-                    OrderOperatorEnum.PASSENGER.getCode(),
+                    OrderOperatorEnum.DRIVER.getCode(),
 
                     driverId,
                     DriverStatusEnum.RECEIVING.getCode(),
@@ -188,10 +193,69 @@ public class DriverOrderServiceImpl implements DriverOrderService {
             return Result.fail("订单已结束");
         }
 
-
+        if(driverDto.getIsReceive().equals(Constants.DRIVER_RECEIVE)){
+            return receiver(driverDto,order);
+        }else if(driverDto.getIsReceive().equals(Constants.DRIVER_DISRECEIVE)){
+            return disreceiver(driverDto,order);
+        }
 
 
         return Result.success("接单成功");
+    }
+
+    private Result receiver(DriverDto driverDto,Order order){
+
+        Long orderId = order.getId();
+        Long passengerId = order.getPassengerId();
+        Long driverId = driverDto.getDriverId();
+
+        try{
+            orderService.changeOrderStatus(orderId,passengerId,
+                    OrderStatusEnum.DISPATCHED.getCode(),
+                    OrderStatusEnum.RECEIVED.getCode(),
+                    OrderOperatorEnum.DRIVER.getCode(),
+
+                    null,null,null);
+
+        }catch(StatusChangeException e) {
+
+            return Result.success("订单已经结束");
+        }
+
+        informService.informPassenger(orderId,passengerId,InformTypeEnum.STATUS_CONFIRM.getCode(),"已接单");
+
+        return Result.success("接单成功");
+
+    }
+
+    private Result disreceiver(DriverDto driverDto,Order order){
+
+        Long orderId = order.getId();
+        Long passengerId = order.getPassengerId();
+        Long driverId = driverDto.getDriverId();
+
+        try{
+            orderService.changeOrderStatus(orderId,passengerId,
+                    OrderStatusEnum.DISPATCHED.getCode(),
+                    OrderStatusEnum.WAITING_DISPATCH.getCode(),
+                    OrderOperatorEnum.DRIVER.getCode(),
+
+                    null,null,null);
+
+        }catch(StatusChangeException e) {
+
+            return Result.success("订单已经结束");
+        }
+
+        ComputeMoneyMessage computeMoneyMessage = new ComputeMoneyMessage(orderId);
+        computeMoneyMessage.setTopic(Constants.MESSAGE_REDISPATCH_TOPIC);
+
+        if(!messageDispatcher.putMessage(computeMoneyMessage)){
+            return Result.fail("信息投递失败");
+        }
+
+        return Result.success("已拒单");
+
     }
 
     private Boolean driverCheck(DriverDto driverDto){

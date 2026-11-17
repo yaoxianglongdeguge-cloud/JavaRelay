@@ -1,12 +1,14 @@
 package com.example.javarelay.messagetask.MessageHandlersImpl;
 
+import com.example.javarelay.constant.Constants;
 import com.example.javarelay.messagetask.MessageCell;
 import com.example.javarelay.messagetask.MessageHandler;
 
 public class ReDispatchHandlerImpl implements MessageHandler {
+    String topic = Constants.MESSAGE_REDISPATCH_TOPIC;
     @Override
     public String getTopic() {
-        return "";
+        return this.topic;
     }
 
     @Override

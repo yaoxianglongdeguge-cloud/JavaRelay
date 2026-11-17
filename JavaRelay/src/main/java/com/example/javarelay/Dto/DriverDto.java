@@ -6,4 +6,8 @@ import lombok.Data;
 public class DriverDto {
     Long driverId;
     Integer status;
+
+    Integer isReceive;
+
+
 }

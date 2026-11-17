@@ -10,11 +10,11 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
 
-    @Select("SELECT * FROM ride_order WHERE passenger_id = #{passengerId}")
+    @Select("SELECT * FROM orders WHERE passenger_id = #{passengerId}")
     public Order selectByPassenger(Long passengerId);
 
     @Update("<script>" +
-            "UPDATE ride_order SET status = #{toStatus}, update_time = NOW() " +
+            "UPDATE orders SET status = #{toStatus}, update_time = NOW() " +
             "<if test='driverId != null'>, driver_id = #{driverId} </if>" +
             "WHERE id = #{orderId} AND status = #{fromStatus}" +
             "</script>")
@@ -23,8 +23,22 @@ public interface OrderMapper extends BaseMapper<Order> {
                                        @Param("toStatus") Integer toStatus,
                                        @Param("driverId") Long driverId);
 
+
     @Update("<script>" +
-            "UPDATE ride_order SET active_flag = #{toFlag}, update_time = NOW() " +
+            "UPDATE orders SET status = #{toStatus}, update_time = NOW() " +
+            "<if test='driverId != null'>, driver_id = #{driverId} </if>" +
+            "WHERE id = #{orderId} AND status IN " +
+            "<foreach collection='array' item='status' open='(' separator=',' close=')'>" +
+            "#{status}" +
+            "</foreach>" +
+            "</script>")
+    public int updateCancelWithOptimisticLock(@Param("orderId") Long orderId,
+                                              Integer[] fromStatus,
+                                              @Param("toStatus") Integer toStatus,
+                                              @Param("driverId") Long driverId);
+
+    @Update("<script>" +
+            "UPDATE orders SET active_flag = #{toFlag}, update_time = NOW() " +
             "WHERE id = #{orderId} AND active_flag = #{fromFlag}" +
             "</script>")
     public int updateActiveFlag(@Param("orderId") Long orderId,

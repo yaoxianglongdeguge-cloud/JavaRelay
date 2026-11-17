@@ -14,6 +14,7 @@ public class Constants {
 
     public static final String MESSAGE_COMPUTEMONEY_TOPIC = "computemoney";
     public static final String MESSAGE_INFORM_TOPIC = "inform";
+    public static final String MESSAGE_REDISPATCH_TOPIC = "dispatch";
 
     public static final Integer DRIVER = 1;
     public static final Integer PASSENGER = 2;
@@ -22,6 +23,9 @@ public class Constants {
     public static final Integer TO_PASSENGER = PASSENGER;
 
     public static final Integer ORDER_TIMEOUT_TIME = 15;
+
+    public static final Integer DRIVER_RECEIVE = 1;
+    public static final Integer DRIVER_DISRECEIVE = 0;
 
 
 }
