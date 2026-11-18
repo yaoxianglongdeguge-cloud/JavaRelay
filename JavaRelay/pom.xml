@@ -86,6 +86,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- redisson starter，springboot自动装配 RedissonClient -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+            <version>3.30.0</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>

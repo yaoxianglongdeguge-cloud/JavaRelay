@@ -8,5 +8,5 @@ public interface ServeAreaService {
 
     public Result changeServeArea(ServiceArea serviceArea);
 
-    public Result judgeServeArea(PassengerDto passengerDto);
+    public Result getServeArea(String city);
 }

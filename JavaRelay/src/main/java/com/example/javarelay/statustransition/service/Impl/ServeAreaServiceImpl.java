@@ -4,19 +4,28 @@ import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.entity.ServiceArea;
 import com.example.javarelay.data.mapper.ServiceAreaMapper;
 import com.example.javarelay.dto.Result;
+import com.example.javarelay.infra.RedisUtil;
+import com.example.javarelay.rediscommon.RedisLogicTimeout;
 import com.example.javarelay.rediscommon.RedisPefix;
 import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.dto.PassengerDto;
 import com.example.javarelay.statustransition.service.ServeAreaService;
+import com.alibaba.fastjson2.TypeReference;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.valves.JsonAccessLogValve;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -32,6 +41,9 @@ public class ServeAreaServiceImpl implements ServeAreaService {
 
     @Autowired
     static StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private ExecutorService threadPool;
 
     static {
         while(nextScan != -1){
@@ -63,7 +75,7 @@ public class ServeAreaServiceImpl implements ServeAreaService {
                     continue;
                 }
 
-                stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + s.getCityName(),s.toString());
+                stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + s.getCityName(),JSON.toJSONString(s));
 
             }
         }
@@ -93,13 +105,72 @@ public class ServeAreaServiceImpl implements ServeAreaService {
         }
 
         stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + serviceArea.getCityName()
-                ,serviceArea.toString());
+                ,JSON.toJSONString(serviceArea));
 
         return Result.success("修改成功");
     }
 
     @Override
-    public Result judgeServeArea(PassengerDto passengerDto) {
-        return null;
+    public Result getServeArea(String city) {
+
+        String dataServiceAreaStr = null;
+        RedisLogicTimeout<ServiceArea> dataServiceArea = null;
+
+        if(city == null || city.isEmpty()){
+            return Result.fail("信息不全");
+        }
+
+        dataServiceAreaStr = stringRedisTemplate.opsForValue().get(RedisPefix.SERVICEAREA_PREFIX + city);
+
+        if(dataServiceAreaStr != null && !dataServiceAreaStr.isEmpty()){
+
+            dataServiceArea = JSON.parseObject(dataServiceAreaStr, new TypeReference<RedisLogicTimeout<ServiceArea>>() {});
+
+            LocalDateTime logicExpireTime = dataServiceArea.getExpireTime();
+            if(!LocalDateTime.now().isAfter(logicExpireTime)){
+                return Result.success((ServiceArea)dataServiceArea.getData());
+            }
+        }
+
+        UUID uuid = UUID.randomUUID();
+        String token = uuid.toString();
+        boolean lock = RedisUtil.tryLock(RedisPefix.SERVICEAREA_PREFIX + city,token,5L);
+        if(lock){
+            try{
+
+                threadPool.submit(() -> reCreateCache(city));
+            }finally {
+                RedisUtil.tryunLock(RedisPefix.SERVICEAREA_PREFIX + city,token);
+            }
+        }
+
+        if(dataServiceAreaStr == null || dataServiceAreaStr.isEmpty()){
+            return Result.fail("服务繁忙，请稍后");
+        }
+
+        LocalDateTime logicExpireTime = dataServiceArea.getExpireTime();
+        if(!LocalDateTime.now().isAfter(logicExpireTime)){
+            return Result.success((ServiceArea)dataServiceArea.getData());
+        }
+
+        return Result.success();
+    }
+
+    private void reCreateCache(String city){
+
+        ServiceArea serviceArea = serviceAreaMapper.selectByCity(city);
+        if(serviceArea == null){
+            RedisLogicTimeout<String> value = new RedisLogicTimeout<>();
+            value.setExpireTime(LocalDateTime.now().plusSeconds(3));
+            value.setData("null");
+            stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + city,JSON.toJSONString(value));
+            stringRedisTemplate.expire(RedisPefix.SERVICEAREA_PREFIX + city, 1, TimeUnit.SECONDS);
+        }else{
+            RedisLogicTimeout<ServiceArea> value = new RedisLogicTimeout<>();
+            value.setExpireTime(LocalDateTime.now().plusHours(24));
+            value.setData(serviceArea);
+            stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + city,JSON.toJSONString(value));
+        }
+
     }
 }
