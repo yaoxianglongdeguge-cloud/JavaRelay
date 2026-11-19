@@ -1,6 +1,7 @@
 package com.example.javarelay.inform.service;
 
 import com.example.javarelay.dto.Result;
+import org.springframework.stereotype.Service;
 
 public interface InformService {
 

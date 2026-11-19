@@ -2,6 +2,7 @@ package com.example.javarelay.statustransition.service.Impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.inform.constants.InformTypeEnum;
+import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.dto.DriverDto;
 import com.example.javarelay.statustransition.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
@@ -41,6 +42,9 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
     @Autowired
     InformService informService;
+
+    @Autowired
+    RedisUtil redisUtil;
 
 
     @Override
@@ -138,7 +142,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         //释放redis锁
         if(driverId != null){
-            RedisUtil.tryunLockDriver(driverId);
+            redisUtil.tryunLockDriver(driverId);
         }
 
         //通知司机
@@ -158,19 +162,19 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
     }
 
-    public Result ReComputeMoney(Long passengerId){
+    public Result ReComputeMoney(Long orderId){
 
         Order order;
         try{
-            order = orderMapper.passengerSelectUnFinshed(passengerId);
+            order = orderMapper.selectById(orderId);
         }catch (Exception e){
             return Result.fail("系统出问题");
         }
-        if(order != null){
+        if(order != null && order.getActiveFlag() != null && order.getActiveFlag().equals(Constants.ACTIVE_ORDER)){
             return Result.fail("订单还未结束");
         }
 
-        strategysService.ComputeMoney(order.getId());
+        strategysService.ComputeMoney(orderId);
 
         return Result.success("订单金额计算中");
 
@@ -213,7 +217,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
                 driverDto = (DriverDto)result1.getData();
 
-                if(!RedisUtil.tryLockDriver(driverDto.getDriverId())){
+                if(!redisUtil.tryLockDriver(driverDto.getDriverId())){
                     continue;
                 }
 
@@ -231,19 +235,19 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
                     String reason = e.getMessage();
                     if("DRIVER_CHANGE_FAIL".equals(reason)){
                         //如果修改数据库失败就解锁司机
-                        RedisUtil.tryunLockDriver(driverDto.getDriverId());
+                        redisUtil.tryunLockDriver(driverDto.getDriverId());
                         continue;
 
                     }else if("ORDER_CHANGE_FAIL".equals(reason)){
                         //如果修改数据库失败就解锁司机
-                        RedisUtil.tryunLockDriver(driverDto.getDriverId());
+                        redisUtil.tryunLockDriver(driverDto.getDriverId());
 
                         return Result.fail("订单已结束");
                     }
 
                 }
 
-                RedisUtil.tryLockDriver(driverDto.getDriverId());//再尝试锁一下，防止状态不一致
+                redisUtil.tryLockDriver(driverDto.getDriverId());//再尝试锁一下，防止状态不一致
 
                 break;
 
@@ -297,7 +301,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         //释放redis锁
         if(driverId != null){
-            RedisUtil.tryunLockDriver(driverId);
+            redisUtil.tryunLockDriver(driverId);
         }
 
         //通知司机

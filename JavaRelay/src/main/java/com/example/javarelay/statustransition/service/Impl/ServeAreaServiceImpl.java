@@ -16,6 +16,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.valves.JsonAccessLogValve;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -38,13 +39,16 @@ public class ServeAreaServiceImpl implements ServeAreaService {
     ServiceAreaMapper serviceAreaMapper;
 
     @Autowired
-    static ServiceAreaMapper staticServiceAreaMapper;
+    ServiceAreaMapper staticServiceAreaMapper;
 
     @Autowired
-    static StringRedisTemplate stringRedisTemplate;
+    StringRedisTemplate stringRedisTemplate;
 
     @Resource
     private ExecutorService threadPool;
+
+    @Autowired
+    RedisUtil redisUtil;
 
     @PostConstruct
     public void warmUpServeArea() {
@@ -64,12 +68,13 @@ public class ServeAreaServiceImpl implements ServeAreaService {
             }
 
             for(ServiceArea s: needInsert){
-                String jsonArea = stringRedisTemplate.opsForValue().get(RedisPefix.SERVICEAREA_PREFIX + s.getCityName());
-                ServiceArea area = JSON.parseObject(jsonArea, ServiceArea.class);
 
-                if(area == null){
-                    int a = 0;
-                }else if(!area.equals(s))
+                ServiceArea area = getServiceAreaRedis(s.getCityName());
+                if (area == null) {
+                    setServiceAreaRedis(s.getCityName(), s, 86400);
+                    continue;
+                }
+                if(!area.equals(s))
                 {
                     stringRedisTemplate.delete(RedisPefix.SERVICEAREA_PREFIX + s.getCityName());
 
@@ -77,7 +82,7 @@ public class ServeAreaServiceImpl implements ServeAreaService {
                     continue;
                 }
 
-                stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + s.getCityName(),JSON.toJSONString(s));
+                setServiceAreaRedis(s.getCityName(),s,86400);
 
             }
         }
@@ -106,8 +111,8 @@ public class ServeAreaServiceImpl implements ServeAreaService {
             return Result.fail("数据库修改失败");
         }
 
-        stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + serviceArea.getCityName()
-                ,JSON.toJSONString(serviceArea));
+        setServiceAreaRedis(serviceArea.getCityName(),serviceArea,86400);
+
 
         return Result.success("修改成功");
     }
@@ -130,19 +135,19 @@ public class ServeAreaServiceImpl implements ServeAreaService {
 
             LocalDateTime logicExpireTime = dataServiceArea.getExpireTime();
             if(!LocalDateTime.now().isAfter(logicExpireTime)){
-                return Result.success((ServiceArea)dataServiceArea.getData());
+                return Result.success(dataServiceArea.getData());
             }
         }
 
         UUID uuid = UUID.randomUUID();
         String token = uuid.toString();
-        boolean lock = RedisUtil.tryLock(RedisPefix.SERVICEAREA_PREFIX + city,token,5L);
+        boolean lock = redisUtil.tryLock(RedisPefix.SERVICEAREA_PREFIX + city,token,5L);
         if(lock){
             try{
 
                 threadPool.submit(() -> reCreateCache(city));
             }finally {
-                RedisUtil.tryunLock(RedisPefix.SERVICEAREA_PREFIX + city,token);
+                redisUtil.tryunLock(RedisPefix.SERVICEAREA_PREFIX + city,token);
             }
         }
 
@@ -162,17 +167,32 @@ public class ServeAreaServiceImpl implements ServeAreaService {
 
         ServiceArea serviceArea = serviceAreaMapper.selectByCity(city);
         if(serviceArea == null){
-            RedisLogicTimeout<String> value = new RedisLogicTimeout<>();
-            value.setExpireTime(LocalDateTime.now().plusSeconds(3));
-            value.setData("null");
-            stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + city,JSON.toJSONString(value));
+            setServiceAreaRedis(city,null,3);
             stringRedisTemplate.expire(RedisPefix.SERVICEAREA_PREFIX + city, 1, TimeUnit.SECONDS);
         }else{
-            RedisLogicTimeout<ServiceArea> value = new RedisLogicTimeout<>();
-            value.setExpireTime(LocalDateTime.now().plusHours(24));
-            value.setData(serviceArea);
-            stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + city,JSON.toJSONString(value));
+            setServiceAreaRedis(city,serviceArea,86400);
         }
 
     }
+
+    public boolean setServiceAreaRedis(String city,Object data,long seconds){
+        RedisLogicTimeout<Object> value = new RedisLogicTimeout<>();
+        value.setData(data);
+        value.setExpireTime(LocalDateTime.now().plusSeconds(seconds));
+        stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + city,
+                JSON.toJSONString(value));
+
+        return true;
+    }
+
+    public ServiceArea getServiceAreaRedis(String city) {
+        String str = stringRedisTemplate.opsForValue().get(RedisPefix.SERVICEAREA_PREFIX + city);
+        if (str == null || str.isEmpty()) {
+            return null;
+        }
+        RedisLogicTimeout<ServiceArea> wrapper =
+                JSON.parseObject(str, new TypeReference<RedisLogicTimeout<ServiceArea>>() {});
+        return wrapper == null ? null : wrapper.getData();
+    }
+
 }

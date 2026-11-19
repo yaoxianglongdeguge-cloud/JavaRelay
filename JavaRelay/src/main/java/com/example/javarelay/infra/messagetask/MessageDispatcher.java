@@ -48,16 +48,16 @@ public class MessageDispatcher {
 
         new Thread(() -> {
             while (true) {
+                MessageCell msg = unDelayQueue.poll();
                 try {
-                    MessageCell msg = unDelayQueue.poll();
                     if (msg != null) {
                         MessageHandler handler = handlers.get(msg.getTopic());
                         if (handler != null) {
                             handler.handler(msg);
                         }
                     }
-                } catch (Exception e) {
-                    break;
+                } catch (Throwable t) {
+                    log.error("消息处理失败, topic={}", msg.getTopic(), t);
                 }
             }
         }).start();
@@ -67,6 +67,15 @@ public class MessageDispatcher {
 
     @EventListener
     public boolean addTask(MessageCell messageCell) {
+
+        if(messageCell == null){
+            return false;
+        }
+
+        if(messageCell.getTopic() == null || handlers.get(messageCell.getTopic()) == null){
+            return false;
+        }
+
         if(messageCell.getExecuteTime() == 0L){
             unDelayQueue.add(messageCell);
             return true;

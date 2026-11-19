@@ -15,6 +15,7 @@ import com.example.javarelay.statustransition.strategys.SelectPathStrategy;
 import com.example.javarelay.statustransition.service.StrategysService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -45,7 +46,7 @@ public class StrategysServiceImpl implements StrategysService {
 
 
     @Autowired
-    MessageDispatcher messageDispatcher;
+    private ApplicationEventPublisher eventPublisher;
 
     @PostConstruct
     public void init(){
@@ -96,6 +97,7 @@ public class StrategysServiceImpl implements StrategysService {
         infoCollector.setStartAddress(passengerDto.getStartAddress());
         infoCollector.setEndAddress(passengerDto.getEndAddress());
 
+        infoCollectors.put(orderId,infoCollector);
 
         return Result.success("ok");
     }
@@ -138,26 +140,23 @@ public class StrategysServiceImpl implements StrategysService {
     @Override
     public Result findPathByStrategy(Long orderId) {
         InfoCollector infoCollector = infoCollectors.get(orderId);
-        String type = infoCollector.getSelectDriverStrategy();
+        String type = infoCollector.getSelectPathStrategyType();
         return selectPathStrategys.get(type).findPathStrategy(infoCollector);
     }
 
     @Override
     public Result preComputeMoney(Long orderId) {
         InfoCollector infoCollector = infoCollectors.get(orderId);
-        String type = infoCollector.getSelectDriverStrategy();
+        String type = infoCollector.getPrecomputeMoneyType();
         return preComputeStrategys.get(type).PreComputeStrategy(infoCollector);
     }
 
     @Override
     public Result ComputeMoney(Long orderId) {
 
-
         ComputeMoneyMessage computeMoneyMessage = new ComputeMoneyMessage(orderId);
 
-        if(!messageDispatcher.addTask(computeMoneyMessage)){
-            return Result.fail("信息投递失败");
-        }
+        eventPublisher.publishEvent(computeMoneyMessage);
 
         return null;
     }

@@ -69,6 +69,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         OrderDetail orderDetail= new OrderDetail();
+        orderDetail.setOrderId(order1.getId());
 
         try{
             orderDetailMapper.insert(orderDetail);

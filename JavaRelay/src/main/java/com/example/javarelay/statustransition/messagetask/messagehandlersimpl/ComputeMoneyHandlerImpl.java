@@ -38,9 +38,6 @@ public class ComputeMoneyHandlerImpl implements MessageHandler {
     @Autowired
     OrderDetailMapper orderDetailMapper;
 
-    @Autowired
-    InformService informService;
-
     ThreadPoolExecutor computeMoneyExecutor = new ThreadPoolExecutor(
             4, 8, 60L, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(2000),

@@ -19,6 +19,10 @@ public class Result implements Serializable {
         return success(null,null);
     }
 
+    static public Result success(String str){
+        return success(str,null);
+    }
+
     static public Result success(Object data){
         return success(null,data);
     }

@@ -8,35 +8,39 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@RestController
 public class PassengerOperate {
     @Autowired
     PassengerOperateService passengerOperateService;
 
-    @PostMapping()
-    public Result putOrder(@RequestAttribute("passengerId") Long passengerId,
+    @PostMapping("/passenger/order")
+    public Result putOrder(@RequestParam("passengerId") Long passengerId,
                            @RequestBody PassengerDto passengerDto){
 
         passengerDto.setPassengerId(passengerId);
         return  passengerOperateService.PutOrder(passengerDto);
     }
 
-    public Result cancelOrder(@RequestAttribute("passengerId") Long passengerId){
+    @PostMapping("/passenger/order/cancel")
+    public Result cancelOrder(@RequestParam("passengerId") Long passengerId){
 
         return passengerOperateService.CancelOrder(passengerId);
 
     }
-    public Result finishOrder(@RequestAttribute("passengerId") Long passengerId){
+    @PostMapping("/passenger/order/finish")
+    public Result finishOrder(@RequestParam("passengerId") Long passengerId){
 
         return passengerOperateService.FinishOrder(passengerId);
 
     }
 
-    public Result reComputeMoney(@RequestAttribute("passengerId") Long passengerId){
+    @PostMapping("/passenger/order/recompute")
+    public Result reComputeMoney(@RequestParam("orderId") Long orderId){
 
-        return  passengerOperateService.ReComputeMoney(passengerId);
+        return  passengerOperateService.ReComputeMoney(orderId);
     }
 }

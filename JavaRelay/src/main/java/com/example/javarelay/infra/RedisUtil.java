@@ -8,16 +8,18 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scripting.support.ResourceScriptSource;
+import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+@Component
 public class RedisUtil {
 
 
     @Autowired
-    public static StringRedisTemplate redisTemplate;
+    public StringRedisTemplate redisTemplate;
 
     private static final DefaultRedisScript<Long> LockScript;
     static {
@@ -26,7 +28,7 @@ public class RedisUtil {
         LockScript.setResultType(Long.class);
     }
 
-    public static boolean tryLock(String lockKey,String uuid,Long timeout){
+    public boolean tryLock(String lockKey,String uuid,Long timeout){
 
         Long result = redisTemplate.execute(
                 LockScript,
@@ -42,7 +44,7 @@ public class RedisUtil {
 
     }
 
-    public static boolean tryunLock(String lockKey,String uuid){
+    public boolean tryunLock(String lockKey,String uuid){
 
         Long result = redisTemplate.execute(
                 LockScript,
@@ -58,7 +60,7 @@ public class RedisUtil {
 
 
 
-    public static boolean tryLockDriver(Long driverId) {
+    public boolean tryLockDriver(Long driverId) {
         String driverHashKey = RedisPefix.DRIVER_INFO + driverId;
 
         Long result = redisTemplate.execute(
@@ -72,7 +74,7 @@ public class RedisUtil {
         return result != null && result == 1L;
     }
 
-    public static boolean tryunLockDriver(Long driverId) {
+    public boolean tryunLockDriver(Long driverId) {
         String driverHashKey = RedisPefix.DRIVER_INFO + driverId;
 
         Long result = redisTemplate.execute(

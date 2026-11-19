@@ -47,6 +47,9 @@ public class DriverOperateServiceImpl implements DriverOperateService {
     @Autowired
     MessageDispatcher messageDispatcher;
 
+    @Autowired
+    RedisUtil redisUtil;
+
     @Override
     public Result CancelOrder(Long driverId) {
 
@@ -87,7 +90,7 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         }
 
         //释放redis锁
-        RedisUtil.tryunLockDriver(driverId);
+        redisUtil.tryunLockDriver(driverId);
 
         //通知用户
         informService.informPassenger(orderId,driverId,passengerId,
@@ -137,7 +140,7 @@ public class DriverOperateServiceImpl implements DriverOperateService {
 
         //释放redis锁
         if(driverId != null){
-            RedisUtil.tryunLockDriver(driverId);
+            redisUtil.tryunLockDriver(driverId);
         }
 
         //通知用户
@@ -181,6 +184,9 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         Integer fromstatus = order.getStatus();
         if(!fromstatus.equals(OrderStatusEnum.DISPATCHED.getCode())){
             return Result.fail("订单已结束");
+        }
+        if(driverDto.getIsReceive() == null){
+            return Result.fail("请明确是否接单");
         }
 
         if(driverDto.getIsReceive().equals(Constants.DRIVER_RECEIVE)){

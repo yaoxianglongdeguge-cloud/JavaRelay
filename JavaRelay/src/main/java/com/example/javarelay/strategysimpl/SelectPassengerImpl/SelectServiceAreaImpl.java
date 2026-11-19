@@ -1,19 +1,17 @@
 package com.example.javarelay.strategysimpl.SelectPassengerImpl;
 
-import com.example.javarelay.rediscommon.RedisPefix;
+import com.example.javarelay.data.entity.ServiceArea;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.infra.GeoUtil;
 import com.example.javarelay.statustransition.infocollect.InfoCollector;
+import com.example.javarelay.statustransition.service.ServeAreaService;
 import com.example.javarelay.statustransition.strategys.SelectPassengerStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
 
-import static org.apache.ibatis.ognl.OgnlOps.doubleValue;
+import java.math.BigDecimal;
 
 @Component
 public class SelectServiceAreaImpl implements SelectPassengerStrategy {
@@ -22,6 +20,9 @@ public class SelectServiceAreaImpl implements SelectPassengerStrategy {
 
     @Autowired
     StringRedisTemplate redisTemplate;
+
+    @Autowired
+    ServeAreaService serveAreaService;
 
     public String getType(){
         return this.type;
@@ -41,17 +42,18 @@ public class SelectServiceAreaImpl implements SelectPassengerStrategy {
         //确定是否在服务范围内
         String city = infoCollector.getStartAddress();
 
-        Map<Object,Object> siteCity = redisTemplate.opsForHash().
-                entries(RedisPefix.SERVICEAREA_PREFIX+city);
 
-        Map<String, Double> result = new HashMap<>();
-        siteCity.forEach((k, v) ->
-                result.put(String.valueOf(k), (Double)v)
-        );
-        double distance = GeoUtil.getDistance(doubleValue(startLng),doubleValue(startLat),
-                result.get("centerLng"),result.get("centerLat"));
+        ServiceArea serviceArea = serveAreaService.getServiceAreaRedis(city);
+        if(serviceArea == null){
+            return Result.fail("不在服务范围内");
+        }
 
-        if(distance > result.get("centerRedius")){
+        double distance = GeoUtil.getDistance(
+                startLng.doubleValue(), startLat.doubleValue(),
+                serviceArea.getCenterLng().doubleValue(), serviceArea.getCenterLat().doubleValue());
+
+
+        if(distance > serviceArea.getRadius()){
             return Result.fail("不在服务范围内");
         }
 

@@ -22,8 +22,11 @@ public class MessageCell implements Delayed {
     }
     @Override
     public final int compareTo(@Nonnull Delayed other) {
-        OrderTimeoutMessage otherTask = (OrderTimeoutMessage) other;
-        return Long.compare(this.executeTime, otherTask.getExecuteTime());
+        if (other == this) {
+            return 0;
+        }
+        return Long.compare(this.getDelay(TimeUnit.MILLISECONDS),
+                other.getDelay(TimeUnit.MILLISECONDS));
     }
 
 }
