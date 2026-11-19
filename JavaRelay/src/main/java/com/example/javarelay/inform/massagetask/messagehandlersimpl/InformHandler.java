@@ -9,7 +9,7 @@ import com.example.javarelay.infra.messagetask.MessageDispatcher;
 import com.example.javarelay.infra.websocket.MyWebSocketHandler;
 import com.example.javarelay.inform.config.MessageTaskConfig;
 import com.example.javarelay.statustransition.constants.Constants;
-import com.example.javarelay.statustransition.messagetask.messagecells.ReDispatchMessage;
+import com.example.javarelay.statustransition.messagetask.messagecells.OrderTimeoutMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class InformHandler implements MessageHandler {
@@ -20,7 +20,7 @@ public class InformHandler implements MessageHandler {
     @Autowired
     MyWebSocketHandler webSocketHandler;
 
-    public String topic = com.example.javarelay.inform.config.MessageTaskConfig.MESSAGE_INFORM_TOPIC;
+    public String topic = MessageTaskConfig.MESSAGE_INFORM_TOPIC;
 
     @Override
     public String getTopic() {
@@ -46,10 +46,8 @@ public class InformHandler implements MessageHandler {
 
             if(toWho.equals(RootInformConfig.TO_DRIVER) && message.equals("已派单")){
                 //如果是通知司机来接单，那还要维护超时任务，防止司机长时间不接单
-                ReDispatchMessage messageCell1 = new ReDispatchMessage(orderId,meId);
+                OrderTimeoutMessage messageCell1 = new OrderTimeoutMessage(orderId,meId);
                 messageCell1.setExecuteTime(Constants.ORDER_TIMEOUT_TIME);
-                messageCell1.setTopic(com.example.javarelay.statustransition.
-                        config.MessageTaskConfig.MESSAGE_REDISPATCH_TOPIC);
 
                 messageDispatcher.addTask(messageCell1);
             }

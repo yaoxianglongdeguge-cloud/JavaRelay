@@ -1,6 +1,7 @@
 package com.example.javarelay.infra.messagetask;
 
-import com.example.javarelay.statustransition.timeouttask.delaymessagecells.OrderTimeoutTask;
+import com.example.javarelay.statustransition.messagetask.messagecells.OrderTimeoutMessage;
+import jakarta.annotation.Nonnull;
 import lombok.Data;
 
 import java.util.concurrent.Delayed;
@@ -20,8 +21,8 @@ public class MessageCell implements Delayed {
         return unit.convert(diff, TimeUnit.MILLISECONDS);
     }
     @Override
-    public int compareTo(Delayed other) {
-        OrderTimeoutTask otherTask = (OrderTimeoutTask) other;
+    public final int compareTo(@Nonnull Delayed other) {
+        OrderTimeoutMessage otherTask = (OrderTimeoutMessage) other;
         return Long.compare(this.executeTime, otherTask.getExecuteTime());
     }
 

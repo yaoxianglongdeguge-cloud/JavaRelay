@@ -27,9 +27,7 @@ public class DriverPatrolServiceImpl implements DriverPatrolService {
         }
 
         DriverPatrolMessage driverPatrolMessage = new DriverPatrolMessage();
-        driverPatrolMessage.setTopic(MessageTaskConfig.DRIVER_PATROL_TOPIC);
         driverPatrolMessage.setExecuteTime(Constants.PATROL_END_TIME);
-
 
     }
 }

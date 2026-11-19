@@ -154,7 +154,6 @@ public class StrategysServiceImpl implements StrategysService {
 
 
         ComputeMoneyMessage computeMoneyMessage = new ComputeMoneyMessage(orderId);
-        computeMoneyMessage.setTopic(MessageTaskConfig.MESSAGE_COMPUTEMONEY_TOPIC);
 
         if(!messageDispatcher.addTask(computeMoneyMessage)){
             return Result.fail("信息投递失败");

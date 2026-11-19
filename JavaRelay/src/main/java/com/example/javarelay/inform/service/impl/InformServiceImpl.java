@@ -18,7 +18,6 @@ public class InformServiceImpl implements InformService {
     public Result informPassenger(Long orderId,Long meId,Long toId,Integer msgType,String message) {
 
         InformMessage informMessage = new InformMessage(RootInformConfig.TO_PASSENGER,orderId,meId,toId,msgType,message);
-        informMessage.setTopic(MessageTaskConfig.MESSAGE_INFORM_TOPIC);
         messageDispatcher.addTask(informMessage);
 
         return Result.success("发送成功");
@@ -28,7 +27,6 @@ public class InformServiceImpl implements InformService {
     public Result informDriver(Long orderId,Long meId,Long toId,Integer msgType,String message) {
 
         InformMessage informMessage = new InformMessage(RootInformConfig.TO_DRIVER,orderId,meId,toId,msgType,message);
-        informMessage.setTopic(MessageTaskConfig.MESSAGE_INFORM_TOPIC);
         messageDispatcher.addTask(informMessage);
 
         return Result.success("发送成功");

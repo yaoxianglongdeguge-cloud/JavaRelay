@@ -1,9 +1,9 @@
-package com.example.javarelay.statustransition.timeouttask.delayhandlerimpl;
+package com.example.javarelay.statustransition.messagetask.messagehandlersimpl;
 
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.data.mapper.OrderMapper;
-import com.example.javarelay.infra.messagetask.DelayMessageCell;
-import com.example.javarelay.infra.messagetask.DelayMessageHandler;
+import com.example.javarelay.infra.messagetask.MessageCell;
+import com.example.javarelay.infra.messagetask.MessageHandler;
 import com.example.javarelay.statustransition.config.MessageTaskConfig;
 import com.example.javarelay.statustransition.exception.StatusChangeException;
 import com.example.javarelay.statustransition.service.OrderService;
@@ -11,7 +11,7 @@ import com.example.javarelay.statustransition.service.PassengerOperateService;
 import com.example.javarelay.statustransition.statusenum.DriverStatusEnum;
 import com.example.javarelay.statustransition.statusenum.OrderOperatorEnum;
 import com.example.javarelay.statustransition.statusenum.OrderStatusEnum;
-import com.example.javarelay.statustransition.timeouttask.delaymessagecells.OrderTimeoutTask;
+import com.example.javarelay.statustransition.messagetask.messagecells.OrderTimeoutMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,9 +21,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class OrderReceiveDelayHandler implements DelayMessageHandler {
+public class OrderReceiveDelayHandler implements MessageHandler {
 
-    String topic = MessageTaskConfig.DELAY_MESSAGE_RECEIVE_TOPIC;
+    String topic = MessageTaskConfig.ORDER_TIMEOUT_TOPIC;
 
     @Autowired
     OrderMapper orderMapper;
@@ -40,11 +40,11 @@ public class OrderReceiveDelayHandler implements DelayMessageHandler {
     }
 
     @Override
-    public Boolean handler(DelayMessageCell delayMessageCell) {
+    public Boolean handler(MessageCell messageCell) {
 
         try{
 
-            computeMoneyExecutor.execute(()->handle(delayMessageCell));
+            computeMoneyExecutor.execute(()->handle(messageCell));
 
         }catch(RejectedExecutionException e){
             log.info("金额计算线程池已满");
@@ -60,9 +60,9 @@ public class OrderReceiveDelayHandler implements DelayMessageHandler {
             new ThreadPoolExecutor.AbortPolicy()
     );
 
-    private void handle(DelayMessageCell delayMessageCell){
-        OrderTimeoutTask orderTimeoutTask = (OrderTimeoutTask) delayMessageCell;
-        OrderTimeoutTask.msg msg = (OrderTimeoutTask.msg) orderTimeoutTask.getMsg();
+    private void handle(MessageCell messageCell){
+        OrderTimeoutMessage orderTimeoutMessage = (OrderTimeoutMessage) messageCell;
+        OrderTimeoutMessage.msg msg = (OrderTimeoutMessage.msg) orderTimeoutMessage.getMsg();
         Long orderId = msg.getOrderId();
         handleTimeout(orderId);
 
@@ -70,7 +70,6 @@ public class OrderReceiveDelayHandler implements DelayMessageHandler {
 
     private void handleTimeout(Long orderId) {
 
-        log.info("订单 {} 已超时，开始执行回滚...", orderId);
 
         Order order = null;
         try{

@@ -28,6 +28,7 @@ public class InformMessage extends MessageCell {
     }
 
     public InformMessage(Integer toWho,Long orderId,Long meId,Long toId,Integer msgType,String message){
+        this.setTopic(com.example.javarelay.inform.config.MessageTaskConfig.MESSAGE_INFORM_TOPIC);
         this.setMsg(new InformMessage.msg(toWho,orderId,meId,toId,msgType,message));
     }
 }

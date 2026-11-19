@@ -236,7 +236,6 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         }
 
         ReDispatchMessage reDispatchMessage = new ReDispatchMessage(orderId,passengerId);
-        reDispatchMessage.setTopic(MessageTaskConfig.MESSAGE_REDISPATCH_TOPIC);
 
         if(!messageDispatcher.addTask(reDispatchMessage)){
             return Result.fail("信息投递失败");
