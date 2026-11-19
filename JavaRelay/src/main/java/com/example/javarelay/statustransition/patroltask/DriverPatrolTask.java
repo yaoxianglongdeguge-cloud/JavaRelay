@@ -1,29 +1,53 @@
-package com.example.javarelay.statustransition.checkthread;
+package com.example.javarelay.statustransition.patroltask;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.entity.DriverRedis;
-import com.example.javarelay.data.entity.ServiceArea;
 import com.example.javarelay.data.mapper.DriverMapper;
 import com.example.javarelay.rediscommon.RedisPefix;
 import com.example.javarelay.statustransition.constants.Constants;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 
 @Slf4j
-public class DriverCheck {
+@Data
+@Component
+public class DriverPatrolTask implements Runnable{
+
+    public final AtomicLong lastHeartbeat = new AtomicLong(System.currentTimeMillis());
+
+    private static AtomicInteger nextScan;
+
+    private Future<?> patrolFuture = null;
 
     @Autowired
     DriverMapper driverMapper;
     @Autowired
     StringRedisTemplate stringRedisTemplate;
 
-    private static int nextScan;
 
-    static {
-
+    @Override
+    public void run() {
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
+                scanDriver();
+                lastHeartbeat.set(System.currentTimeMillis());
+                Thread.sleep(Constants.DRIVER_PATROL_INTERVAL);
+            } catch (InterruptedException e) {
+                log.info("对账任务收到中断");
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
     }
 
     private void scanDriver(){
@@ -32,20 +56,20 @@ public class DriverCheck {
 
             List<DriverRedis> needInsert = null;
             try {
-                needInsert = driverMapper.getDriverRedis(nextScan, Constants.SERVE_DRIVERS_SCAN);
+                needInsert = driverMapper.getDriverRedis(nextScan.get(), Constants.SERVE_DRIVERS_SCAN);
             } catch (Exception e) {
                 log.info("司机扫描出错");
             }
 
             if(needInsert == null){
-                nextScan = 0;
+                nextScan.set(0);
                 continue;
             }
 
             if (needInsert.size() < Constants.SERVE_DRIVERS_SCAN) {
-                nextScan = 0;
+                nextScan.set(0);
             } else {
-                nextScan = nextScan + needInsert.size();
+                nextScan.addAndGet(needInsert.size());
             }
 
             for (DriverRedis s : needInsert) {

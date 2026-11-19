@@ -90,7 +90,7 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         RedisUtil.tryunLockDriver(driverId);
 
         //通知用户
-        informService.informPassenger(orderId,passengerId,
+        informService.informPassenger(orderId,driverId,passengerId,
                 InformTypeEnum.STATUS_CONFIRM.getCode(),"已取消");
 
         return Result.success("取消订单成功");
@@ -141,7 +141,7 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         }
 
         //通知用户
-        informService.informPassenger(orderId,passengerId,
+        informService.informPassenger(orderId,driverId,passengerId,
                 InformTypeEnum.STATUS_CONFIRM.getCode(),"已结束");
 
         //计算金额
@@ -211,7 +211,7 @@ public class DriverOperateServiceImpl implements DriverOperateService {
             return Result.success("订单已经结束");
         }
 
-        informService.informPassenger(orderId,passengerId,InformTypeEnum.STATUS_CONFIRM.getCode(),"已接单");
+        informService.informPassenger(orderId,driverId,passengerId,InformTypeEnum.STATUS_CONFIRM.getCode(),"已接单");
 
         return Result.success("接单成功");
 
@@ -238,11 +238,11 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         ReDispatchMessage reDispatchMessage = new ReDispatchMessage(orderId,passengerId);
         reDispatchMessage.setTopic(MessageTaskConfig.MESSAGE_REDISPATCH_TOPIC);
 
-        if(!messageDispatcher.putMessage(reDispatchMessage)){
+        if(!messageDispatcher.addTask(reDispatchMessage)){
             return Result.fail("信息投递失败");
         }
 
-        informService.informPassenger(orderId,passengerId,InformTypeEnum.STATUS_CONFIRM.getCode(),"已拒单");
+        informService.informPassenger(orderId,driverId,passengerId,InformTypeEnum.STATUS_CONFIRM.getCode(),"已拒单");
 
         return Result.success("已拒单");
 

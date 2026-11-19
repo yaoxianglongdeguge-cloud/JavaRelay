@@ -1,24 +1,26 @@
 package com.example.javarelay.inform.massagetask.messagehandlersimpl;
 
 import com.example.javarelay.config.RootInformConfig;
-import com.example.javarelay.statustransition.config.MessageTaskConfig;
-import com.example.javarelay.inform.constants.InformTypeEnum;
 import com.example.javarelay.infra.messagetask.MessageCell;
+import com.example.javarelay.inform.constants.InformTypeEnum;
 import com.example.javarelay.inform.massagetask.messagecells.InformMessage;
 import com.example.javarelay.infra.messagetask.MessageHandler;
-import com.example.javarelay.infra.timeouttask.TimeoutTaskDispatcher;
+import com.example.javarelay.infra.messagetask.MessageDispatcher;
 import com.example.javarelay.infra.websocket.MyWebSocketHandler;
+import com.example.javarelay.inform.config.MessageTaskConfig;
+import com.example.javarelay.statustransition.constants.Constants;
+import com.example.javarelay.statustransition.messagetask.messagecells.ReDispatchMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class InformHandler implements MessageHandler {
 
     @Autowired
-    TimeoutTaskDispatcher timeoutTaskDispatcher;
+    MessageDispatcher messageDispatcher;
 
     @Autowired
     MyWebSocketHandler webSocketHandler;
 
-    public String topic = MessageTaskConfig.MESSAGE_INFORM_TOPIC;
+    public String topic = com.example.javarelay.inform.config.MessageTaskConfig.MESSAGE_INFORM_TOPIC;
 
     @Override
     public String getTopic() {
@@ -35,6 +37,7 @@ public class InformHandler implements MessageHandler {
         Integer type = msg.getMsgType();
         String message = msg.getMessage();
         Long orderId = msg.getOrderId();
+        Long meId = msg.getMeId();
 
         if(type == InformTypeEnum.STATUS_CONFIRM.getCode()){
 
@@ -43,7 +46,12 @@ public class InformHandler implements MessageHandler {
 
             if(toWho.equals(RootInformConfig.TO_DRIVER) && message.equals("已派单")){
                 //如果是通知司机来接单，那还要维护超时任务，防止司机长时间不接单
-                timeoutTaskDispatcher.addTimeoutTask(orderId);
+                ReDispatchMessage messageCell1 = new ReDispatchMessage(orderId,meId);
+                messageCell1.setExecuteTime(Constants.ORDER_TIMEOUT_TIME);
+                messageCell1.setTopic(com.example.javarelay.statustransition.
+                        config.MessageTaskConfig.MESSAGE_REDISPATCH_TOPIC);
+
+                messageDispatcher.addTask(messageCell1);
             }
 
         }

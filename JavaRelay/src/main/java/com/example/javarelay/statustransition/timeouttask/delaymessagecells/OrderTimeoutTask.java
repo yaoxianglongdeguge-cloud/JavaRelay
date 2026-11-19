@@ -1,7 +1,6 @@
 package com.example.javarelay.statustransition.timeouttask.delaymessagecells;
 
-import com.example.javarelay.infra.timeouttask.DelayMessageCell;
-import com.example.javarelay.statustransition.messagetask.messagecells.ComputeMoneyMessage;
+import com.example.javarelay.infra.messagetask.DelayMessageCell;
 import lombok.Data;
 
 @Data

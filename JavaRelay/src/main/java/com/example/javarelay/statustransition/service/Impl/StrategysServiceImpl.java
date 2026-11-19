@@ -137,12 +137,16 @@ public class StrategysServiceImpl implements StrategysService {
 
     @Override
     public Result findPathByStrategy(Long orderId) {
-        return null;
+        InfoCollector infoCollector = infoCollectors.get(orderId);
+        String type = infoCollector.getSelectDriverStrategy();
+        return selectPathStrategys.get(type).findPathStrategy(infoCollector);
     }
 
     @Override
     public Result preComputeMoney(Long orderId) {
-        return null;
+        InfoCollector infoCollector = infoCollectors.get(orderId);
+        String type = infoCollector.getSelectDriverStrategy();
+        return preComputeStrategys.get(type).PreComputeStrategy(infoCollector);
     }
 
     @Override
@@ -152,7 +156,7 @@ public class StrategysServiceImpl implements StrategysService {
         ComputeMoneyMessage computeMoneyMessage = new ComputeMoneyMessage(orderId);
         computeMoneyMessage.setTopic(MessageTaskConfig.MESSAGE_COMPUTEMONEY_TOPIC);
 
-        if(!messageDispatcher.putMessage(computeMoneyMessage)){
+        if(!messageDispatcher.addTask(computeMoneyMessage)){
             return Result.fail("信息投递失败");
         }
 

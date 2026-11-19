@@ -15,4 +15,8 @@ public class Constants {
     public static final int SERVE_AREA_SCAN = 5000;
     public static final int SERVE_DRIVERS_SCAN = 5000;
 
+    public static final int DRIVER_PATROL_INTERVAL = 3000;
+    public static final long PATROL_HEART = 6000;
+    public static final long PATROL_END_TIME = 3000;
+
 }
