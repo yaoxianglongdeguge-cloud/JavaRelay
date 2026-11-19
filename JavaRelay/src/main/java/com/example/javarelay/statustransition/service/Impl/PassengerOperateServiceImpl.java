@@ -243,6 +243,8 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
                 }
 
+                RedisUtil.tryLockDriver(driverDto.getDriverId());//再尝试锁一下，防止状态不一致
+
                 break;
 
             }

@@ -13,6 +13,6 @@ public class Constants {
     public static final Integer DRIVER_DISRECEIVE = 0;
 
     public static final int SERVE_AREA_SCAN = 5000;
-
+    public static final int SERVE_DRIVERS_SCAN = 5000;
 
 }
