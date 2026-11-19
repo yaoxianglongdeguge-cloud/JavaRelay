@@ -11,6 +11,7 @@ import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.dto.PassengerDto;
 import com.example.javarelay.statustransition.service.ServeAreaService;
 import com.alibaba.fastjson2.TypeReference;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.valves.JsonAccessLogValve;
@@ -34,10 +35,10 @@ public class ServeAreaServiceImpl implements ServeAreaService {
     private static int nextScan = 0 ;
 
     @Autowired
-    static ServiceAreaMapper staticServiceAreaMapper;
+    ServiceAreaMapper serviceAreaMapper;
 
     @Autowired
-    ServiceAreaMapper serviceAreaMapper;
+    static ServiceAreaMapper staticServiceAreaMapper;
 
     @Autowired
     static StringRedisTemplate stringRedisTemplate;
@@ -45,7 +46,8 @@ public class ServeAreaServiceImpl implements ServeAreaService {
     @Resource
     private ExecutorService threadPool;
 
-    static {
+    @PostConstruct
+    public void warmUpServeArea() {
         while(nextScan != -1){
 
             List<ServiceArea> needInsert = null;

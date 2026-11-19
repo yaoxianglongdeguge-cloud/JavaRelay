@@ -14,6 +14,7 @@ import com.example.javarelay.statustransition.statusenum.OrderStatusEnum;
 import com.example.javarelay.statustransition.messagetask.messagecells.OrderTimeoutMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -21,6 +22,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
+@Component
 public class OrderReceiveDelayHandler implements MessageHandler {
 
     String topic = MessageTaskConfig.ORDER_TIMEOUT_TOPIC;

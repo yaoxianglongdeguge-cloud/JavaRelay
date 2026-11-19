@@ -14,6 +14,7 @@ import com.example.javarelay.statustransition.strategys.ComputeMoneyStrategy;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
+@Component
 public class ComputeMoneyHandlerImpl implements MessageHandler {
 
     public String topic = MessageTaskConfig.MESSAGE_COMPUTEMONEY_TOPIC;

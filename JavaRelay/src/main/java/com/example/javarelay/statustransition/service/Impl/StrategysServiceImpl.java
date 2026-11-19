@@ -20,12 +20,12 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class StrategysServiceImpl implements StrategysService {
 
-    @Autowired
-    Map<Long,InfoCollector> infoCollectors = new HashMap<>();
+    Map<Long,InfoCollector> infoCollectors = new ConcurrentHashMap<>();
 
     @Autowired
     List<SelectDriverStrategy> selectDriverStrategyList;

@@ -4,6 +4,7 @@ import com.example.javarelay.config.RootMessageTaskConfig;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -64,6 +65,7 @@ public class MessageDispatcher {
 
     }
 
+    @EventListener
     public boolean addTask(MessageCell messageCell) {
         if(messageCell.getExecuteTime() == 0L){
             unDelayQueue.add(messageCell);

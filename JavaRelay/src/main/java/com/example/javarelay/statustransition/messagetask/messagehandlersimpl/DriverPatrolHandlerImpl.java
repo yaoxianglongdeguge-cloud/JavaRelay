@@ -6,6 +6,7 @@ import com.example.javarelay.statustransition.config.MessageTaskConfig;
 import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.patroltask.DriverPatrolTask;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static jodd.util.ThreadUtil.sleep;
 
+@Component
 public class DriverPatrolHandlerImpl implements MessageHandler {
 
     @Autowired

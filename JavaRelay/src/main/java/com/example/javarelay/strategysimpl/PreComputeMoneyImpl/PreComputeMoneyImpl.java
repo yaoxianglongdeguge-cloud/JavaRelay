@@ -3,9 +3,11 @@ package com.example.javarelay.strategysimpl.PreComputeMoneyImpl;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.statustransition.infocollect.InfoCollector;
 import com.example.javarelay.statustransition.strategys.PreComputeStrategy;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+@Component
 public class PreComputeMoneyImpl implements PreComputeStrategy {
 
     String type = "default";

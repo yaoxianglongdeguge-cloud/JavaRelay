@@ -1,5 +1,6 @@
 package com.example.javarelay;
 
+import com.example.javarelay.dto.Result;
 import com.example.javarelay.statustransition.dto.PassengerDto;
 import com.example.javarelay.statustransition.service.OrderService;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ public class OrderServiceTest {
 
         // 2. 调用 Service 进行下单
         try {
-            Boolean result = orderService.createAndInsertOrder(dto);
+            Result result = orderService.createAndInsertOrder(dto);
             System.out.println("下单结果: " + result);
         } catch (Exception e) {
             System.out.println("测试报错: " + e.getMessage());

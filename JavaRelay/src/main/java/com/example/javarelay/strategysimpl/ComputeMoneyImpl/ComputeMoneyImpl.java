@@ -2,9 +2,11 @@ package com.example.javarelay.strategysimpl.ComputeMoneyImpl;
 
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.statustransition.strategys.ComputeMoneyStrategy;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+@Component
 public class ComputeMoneyImpl implements ComputeMoneyStrategy {
 
     String type = "default";

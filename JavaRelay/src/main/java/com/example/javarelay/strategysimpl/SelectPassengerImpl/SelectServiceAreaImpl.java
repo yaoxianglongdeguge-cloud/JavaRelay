@@ -7,6 +7,7 @@ import com.example.javarelay.statustransition.infocollect.InfoCollector;
 import com.example.javarelay.statustransition.strategys.SelectPassengerStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import java.util.Map;
 
 import static org.apache.ibatis.ognl.OgnlOps.doubleValue;
 
+@Component
 public class SelectServiceAreaImpl implements SelectPassengerStrategy {
 
     String type = "default";

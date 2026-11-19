@@ -13,7 +13,7 @@ import java.util.List;
 @Mapper
 public interface DriverMapper extends BaseMapper<Driver> {
 
-    @Update("UPDATE driver SET status = #{newStatus}, update_time = NOW() " +
+    @Update("UPDATE drivers SET status = #{newStatus}, update_time = NOW() " +
                    "WHERE id = #{driverId} AND status = #{oldStatus}")
     int updateStatusWithOptimisticLock(@Param("driverId") Long driverId,
                                        @Param("oldStatus") Integer oldStatus,

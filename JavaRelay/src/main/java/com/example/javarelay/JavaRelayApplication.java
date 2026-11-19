@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@MapperScan("com.example.javarelay.mapper")
+@MapperScan("com.example.javarelay.data.mapper")
 public class JavaRelayApplication {
 
     public static void main(String[] args) {

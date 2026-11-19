@@ -47,12 +47,12 @@ public interface OrderMapper extends BaseMapper<Order> {
                                              );
 
 
-    @Select("SELECT * FROM ride_order WHERE passenger_id = #{passengerId} " +
-            "AND active_flag == 1 ORDER BY create_time DESC LIMIT 1")
+    @Select("SELECT * FROM orders WHERE passenger_id = #{passengerId} " +
+            "AND active_flag = 1 ORDER BY create_time DESC LIMIT 1")
     public Order passengerSelectUnFinshed(Long passengerId);
 
-    @Select("SELECT * FROM ride_order WHERE driver_id = #{driverId} " +
-            "AND active_flag == 1 ORDER BY create_time DESC LIMIT 1")
+    @Select("SELECT * FROM orders WHERE driver_id = #{driverId} " +
+            "AND active_flag = 1 ORDER BY create_time DESC LIMIT 1")
     public Order driverSelectUnFinshed(Long driverId);
 
 }
