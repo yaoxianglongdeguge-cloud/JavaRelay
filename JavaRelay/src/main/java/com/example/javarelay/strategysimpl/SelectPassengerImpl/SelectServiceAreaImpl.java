@@ -32,12 +32,12 @@ public class SelectServiceAreaImpl implements SelectPassengerStrategy {
 
     public Result inServiceArea(InfoCollector infoCollector){
 
-        Long passengerId = infoCollector.getPassengerInfo().getPassengerId();
-        BigDecimal startLng = infoCollector.getPassengerInfo().getStartLng();
-        BigDecimal startLat = infoCollector.getPassengerInfo().getStartLat();
+        Long passengerId = infoCollector.getPassengerId();
+        BigDecimal startLng = infoCollector.getStartLng();
+        BigDecimal startLat = infoCollector.getStartLat();
 
         //确定是否在服务范围内
-        String city = infoCollector.getPassengerInfo().getCity();
+        String city = infoCollector.getStartAddress();
 
         Map<Object,Object> siteCity = redisTemplate.opsForHash().
                 entries(RedisPefix.SERVICEAREA_PREFIX+city);
