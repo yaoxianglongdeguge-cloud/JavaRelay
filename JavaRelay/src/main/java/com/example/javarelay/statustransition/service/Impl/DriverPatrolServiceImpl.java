@@ -6,6 +6,7 @@ import com.example.javarelay.statustransition.messagetask.messagecells.DriverPat
 import com.example.javarelay.statustransition.patroltask.DriverPatrolTask;
 import com.example.javarelay.statustransition.service.DriverPatrolService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,6 +15,7 @@ public class DriverPatrolServiceImpl implements DriverPatrolService {
     @Autowired
     DriverPatrolTask driverPatrolTask;
     @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Override
     public void CheckDriverPatrolHeart() {
@@ -28,6 +30,6 @@ public class DriverPatrolServiceImpl implements DriverPatrolService {
 
         DriverPatrolMessage driverPatrolMessage = new DriverPatrolMessage();
         driverPatrolMessage.setExecuteTime(Constants.PATROL_END_TIME);
-
+        eventPublisher.publishEvent(driverPatrolMessage);
     }
 }

@@ -141,13 +141,13 @@ public class ServeAreaServiceImpl implements ServeAreaService {
 
         UUID uuid = UUID.randomUUID();
         String token = uuid.toString();
-        boolean lock = redisUtil.tryLock(RedisPefix.SERVICEAREA_PREFIX + city,token,5L);
+        boolean lock = redisUtil.tryLock(RedisPefix.SERVICEAREA_LOCK_PREFIX + city,token,5L);
         if(lock){
             try{
 
                 threadPool.submit(() -> reCreateCache(city));
             }finally {
-                redisUtil.tryunLock(RedisPefix.SERVICEAREA_PREFIX + city,token);
+                redisUtil.tryunLock(RedisPefix.SERVICEAREA_LOCK_PREFIX + city,token);
             }
         }
 

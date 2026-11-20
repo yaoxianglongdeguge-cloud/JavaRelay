@@ -20,11 +20,13 @@ import com.example.javarelay.statustransition.service.StrategysService;
 import com.example.javarelay.statustransition.statusenum.DriverStatusEnum;
 import com.example.javarelay.statustransition.statusenum.OrderOperatorEnum;
 import com.example.javarelay.statustransition.statusenum.OrderStatusEnum;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+@Slf4j
 @Service
 public class PassengerOperateServiceImpl implements PassengerOperateService {
 
@@ -196,10 +198,10 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
         }
 
         //筛选司机
-        Result result1;
-        DriverDto driverDto;
+        DriverDto driverDto = null;
+        int tryNum = 5;
 
-        while(true){
+        while((tryNum = tryNum - 1) > 0){
 
             Order order = orderMapper.selectByPassenger(passengerId);
 
@@ -211,11 +213,11 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
                 }
             }
 
-            result1 = strategysService.findDriverByStrategy(orderId);
+            Result picked = strategysService.findDriverByStrategy(orderId);
 
-            if(result1.getCode() == 200){
+            if(picked.getCode() == 200){
 
-                driverDto = (DriverDto)result1.getData();
+                driverDto = (DriverDto)picked.getData();
 
                 if(!redisUtil.tryLockDriver(driverDto.getDriverId())){
                     continue;
@@ -232,6 +234,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
                             DriverStatusEnum.RECEIVING.getCode());
 
                 }catch(StatusChangeException e) {
+                    redisUtil.tryunLockDriver(driverDto.getDriverId());
                     String reason = e.getMessage();
                     if("DRIVER_CHANGE_FAIL".equals(reason)){
                         //如果修改数据库失败就解锁司机
@@ -245,12 +248,18 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
                         return Result.fail("订单已结束");
                     }
 
+                }catch (Exception e) {
+                    redisUtil.tryunLockDriver(driverDto.getDriverId());
+                    log.error("派单落库失败 driverId={}", driverDto.getDriverId(), e);
+                    continue;
                 }
 
                 redisUtil.tryLockDriver(driverDto.getDriverId());//再尝试锁一下，防止状态不一致
 
                 break;
 
+            }else{
+                break;
             }
         }
 
@@ -327,38 +336,49 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
         DriverDto driverDto = (DriverDto) result.getData();
 
         //确定路线
-        Result resultPath = strategysService.findPathByStrategy(order.getId());
-        RouteInfo routeInfo = (RouteInfo) resultPath.getData();
-        routeInfo.setStartAndEnd(
-                passengerDto.getStartLng(),
-                passengerDto.getStartLat(),
-                passengerDto.getEndLng(),
-                passengerDto.getEndLat()
-        );
-
-        routeInfo.setStartAddress(passengerDto.getStartAddress());
-        routeInfo.setEndAddress(passengerDto.getEndAddress());
-
-        //预估金额
-        Result resultPreMoney = strategysService.preComputeMoney(order.getId());
-        BigDecimal preMoney = (BigDecimal)resultPreMoney.getData();
-
         try{
-            orderDetailMapper.initOrderDetail(
-                    order.getId(),
-                    driverDto.getDriverId(),
-                    preMoney,
-                    JSON.toJSONString(routeInfo)
+
+            Result resultPath = strategysService.findPathByStrategy(order.getId());
+            RouteInfo routeInfo = (RouteInfo) resultPath.getData();
+            routeInfo.setStartAndEnd(
+                    passengerDto.getStartLng(),
+                    passengerDto.getStartLat(),
+                    passengerDto.getEndLng(),
+                    passengerDto.getEndLat()
             );
-        }catch (Exception e){
-            return Result.fail("系统出问题");
+
+            routeInfo.setStartAddress(passengerDto.getStartAddress());
+            routeInfo.setEndAddress(passengerDto.getEndAddress());
+
+            //预估金额
+            Result resultPreMoney = strategysService.preComputeMoney(order.getId());
+            BigDecimal preMoney = (BigDecimal)resultPreMoney.getData();
+
+            try{
+                orderDetailMapper.initOrderDetail(
+                        order.getId(),
+                        driverDto.getDriverId(),
+                        preMoney,
+                        JSON.toJSONString(routeInfo)
+                );
+            }catch (Exception e){
+                return Result.fail("系统出问题");
+            }
+
+
+            //通知司机
+            informService.informDriver(order.getId(),passengerDto.getPassengerId(),driverDto.getDriverId(),
+                    InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
+
+        }catch (Exception e) {
+            log.error("派单后续步骤失败，开始补偿 orderId={}", order.getId(), e);
+
+            orderService.cancelAfterDispatchFail(order.getId(),passengerDto.getPassengerId(),
+                    OrderStatusEnum.DISPATCHED.getCode(), driverDto.getDriverId(), e.getMessage());
+
+            redisUtil.tryunLockDriver(driverDto.getDriverId());   // DB 补偿成功后再放 Redis
+            return Result.fail("派单失败，请重试");
         }
-
-
-        //通知司机
-        informService.informDriver(order.getId(),passengerDto.getPassengerId(),driverDto.getDriverId(),
-                InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
-
         return Result.success("派单成功");
     }
 
@@ -399,40 +419,52 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
         DriverDto driverDto = (DriverDto) result.getData();
 
         //确定路线
-        Result resultPath = strategysService.findPathByStrategy(order.getId());
-        RouteInfo routeInfo = (RouteInfo) resultPath.getData();
-        routeInfo.setStartAndEnd(
-                infoCollector.getStartLng(),
-                infoCollector.getStartLat(),
-                infoCollector.getEndLng(),
-                infoCollector.getEndLat()
-        );
+        try{
 
-        routeInfo.setStartAddress(infoCollector.getStartAddress());
-        routeInfo.setEndAddress(infoCollector.getEndAddress());
-
-        //预估金额
-        Result resultPreMoney = strategysService.preComputeMoney(order.getId());
-        BigDecimal preMoney = (BigDecimal) resultPreMoney.getData();
-
-        try {
-            orderDetailMapper.initOrderDetail(
-                    order.getId(),
-                    driverDto.getDriverId(),
-                    preMoney,
-                    JSON.toJSONString(routeInfo)
+            Result resultPath = strategysService.findPathByStrategy(order.getId());
+            RouteInfo routeInfo = (RouteInfo) resultPath.getData();
+            routeInfo.setStartAndEnd(
+                    infoCollector.getStartLng(),
+                    infoCollector.getStartLat(),
+                    infoCollector.getEndLng(),
+                    infoCollector.getEndLat()
             );
-        } catch (Exception e) {
-            return Result.fail("系统出问题");
+
+            routeInfo.setStartAddress(infoCollector.getStartAddress());
+            routeInfo.setEndAddress(infoCollector.getEndAddress());
+
+            //预估金额
+            Result resultPreMoney = strategysService.preComputeMoney(order.getId());
+            BigDecimal preMoney = (BigDecimal) resultPreMoney.getData();
+
+            try {
+                orderDetailMapper.initOrderDetail(
+                        order.getId(),
+                        driverDto.getDriverId(),
+                        preMoney,
+                        JSON.toJSONString(routeInfo)
+                );
+            } catch (Exception e) {
+                return Result.fail("系统出问题");
+            }
+
+
+            //通知司机
+            informService.informDriver(orderId,passengerId,driverDto.getDriverId(),
+                    InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
+
+        }catch (Exception e) {
+            log.error("派单后续步骤失败，开始补偿 orderId={}", order.getId(), e);
+
+            orderService.cancelAfterDispatchFail(order.getId(),passengerId,
+                    OrderStatusEnum.DISPATCHED.getCode(), driverDto.getDriverId(), e.getMessage());
+
+            redisUtil.tryunLockDriver(driverDto.getDriverId());   // DB 补偿成功后再放 Redis
+            return Result.fail("派单失败，请重试");
         }
-
-
-        //通知司机
-        informService.informDriver(orderId,passengerId,driverDto.getDriverId(),
-                InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
 
         return Result.success("派单成功");
 
 
-        }
+    }
 }

@@ -12,13 +12,16 @@ import com.example.javarelay.data.mapper.OrderDetailMapper;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.data.mapper.OrderStatusLogMapper;
 import com.example.javarelay.statustransition.service.OrderService;
+import com.example.javarelay.statustransition.statusenum.DriverStatusEnum;
 import com.example.javarelay.statustransition.statusenum.OrderOperatorEnum;
 import com.example.javarelay.statustransition.statusenum.OrderStatusEnum;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -64,12 +67,14 @@ public class OrderServiceImpl implements OrderService {
         );
 
         int rows = orderStatusLogMapper.insert(orderStatusLog);
+
         if (rows <= 0) {
             throw new RuntimeException("订单流转记录插入失败");
         }
 
         OrderDetail orderDetail= new OrderDetail();
         orderDetail.setOrderId(order1.getId());
+        orderDetail.setPassengerId(passengerId);
 
         try{
             orderDetailMapper.insert(orderDetail);
@@ -83,7 +88,7 @@ public class OrderServiceImpl implements OrderService {
         return Result.success(order1);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public Result changeOrderStatus(Long orderId,Long passengerId,
                                     Integer fromStatus,Integer toStatus,Integer operator,
@@ -142,5 +147,40 @@ public class OrderServiceImpl implements OrderService {
         return Result.success();
     }
 
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelAfterDispatchFail(Long orderId, Long passengerId,
+                                        Integer fromStatus, Long driverId, String reason) {
+
+        // 1) 订单置为已取消（乐观锁：状态已变就跳过，保证幂等）
+        int rows = orderMapper.updateStatusWithOptimisticLock(
+                orderId, fromStatus, OrderStatusEnum.CANCELED.getCode(), null);
+        if (rows == 0) {
+            log.warn("补偿跳过：订单 {} 当前状态不是 {}，可能已被处理", orderId, fromStatus);
+            return;
+        }
+
+        // 2) 置为不活跃
+        orderMapper.updateActiveFlag(orderId, Constants.ACTIVE_ORDER, Constants.FINISHED_ORDER);
+
+        // 3) 记一笔流转日志，operator=SYSTEM，便于事后排查
+        orderStatusLogMapper.insert(new OrderStatusLog(
+                orderId, fromStatus, OrderStatusEnum.CANCELED.getCode(),
+                OrderOperatorEnum.SYSTEM.getCode(), passengerId));
+
+        // 4) 已派出去的司机要还回去
+        if (driverId != null) {
+            int dr = driverMapper.updateStatusWithOptimisticLock(
+                    driverId,
+                    DriverStatusEnum.RECEIVING.getCode(),
+                    DriverStatusEnum.LEISURE.getCode());
+            if (dr == 0) {
+                log.warn("补偿：司机 {} 当前不是接单中，跳过", driverId);
+            }
+        }
+
+        log.info("订单 {} 派单失败已补偿为取消，原因：{}", orderId, reason);
+    }
 
 }

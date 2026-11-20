@@ -25,7 +25,7 @@ public class DriverPatrolTask implements Runnable{
 
     public final AtomicLong lastHeartbeat = new AtomicLong(System.currentTimeMillis());
 
-    private static AtomicInteger nextScan;
+    private static AtomicInteger nextScan = new AtomicInteger(0);
 
     private Future<?> patrolFuture = null;
 
@@ -79,13 +79,13 @@ public class DriverPatrolTask implements Runnable{
                 if (driver == null) {
                     int a = 0;
                 } else if (!driver.equals(s)) {
-                    stringRedisTemplate.delete(RedisPefix.SERVICEAREA_PREFIX + s.getId());
+                    stringRedisTemplate.delete(RedisPefix.DRIVER_INFO + s.getId());
 
                 } else {
                     continue;
                 }
 
-                stringRedisTemplate.opsForValue().set(RedisPefix.SERVICEAREA_PREFIX + s.getId(), JSON.toJSONString(s));
+                stringRedisTemplate.opsForValue().set(RedisPefix.DRIVER_INFO + s.getId(), JSON.toJSONString(s));
 
             }
         }

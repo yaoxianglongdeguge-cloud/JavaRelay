@@ -21,37 +21,43 @@ public class RedisUtil {
     @Autowired
     public StringRedisTemplate redisTemplate;
 
-    private static final DefaultRedisScript<Long> LockScript;
+    private static final DefaultRedisScript<Long> driverLockScript;
+    private static final DefaultRedisScript<Long> lockScript;
+    private static final DefaultRedisScript<Long> unLockScript;
     static {
-        LockScript = new DefaultRedisScript<>();
-        LockScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("lua/try_lock.lua")));
-        LockScript.setResultType(Long.class);
+        driverLockScript = new DefaultRedisScript<>();
+        driverLockScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("lua/try_lock_driver.lua")));
+        driverLockScript.setResultType(Long.class);
+
+        lockScript = new DefaultRedisScript<>();
+        lockScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("lua/try_lock.lua")));
+        lockScript.setResultType(Long.class);
+
+        unLockScript = new DefaultRedisScript<>();
+        unLockScript.setScriptSource(new ResourceScriptSource(new ClassPathResource("lua/try_unlock.lua")));
+        unLockScript.setResultType(Long.class);
     }
 
     public boolean tryLock(String lockKey,String uuid,Long timeout){
 
         Long result = redisTemplate.execute(
-                LockScript,
+                lockScript,
                 Collections.singletonList(lockKey),
-                "uuid",
-                "nil",
-                uuid
+                uuid,
+                timeout
         );
 
-        Boolean ok = redisTemplate.expire(lockKey, timeout, TimeUnit.SECONDS);
 
-        return result == 1L && Boolean.TRUE.equals(ok);
+        return result == 1L;
 
     }
 
     public boolean tryunLock(String lockKey,String uuid){
 
         Long result = redisTemplate.execute(
-                LockScript,
+                unLockScript,
                 Collections.singletonList(lockKey),
-                "uuid",
-                uuid,
-                "nil"
+                uuid
         );
 
         return result == 1L;
@@ -64,9 +70,8 @@ public class RedisUtil {
         String driverHashKey = RedisPefix.DRIVER_INFO + driverId;
 
         Long result = redisTemplate.execute(
-                LockScript,
+                driverLockScript,
                 Collections.singletonList(driverHashKey),
-                "status",
                 String.valueOf(DriverStatusEnum.LEISURE.getCode()),
                 String.valueOf(DriverStatusEnum.RECEIVING.getCode())
         );
@@ -78,9 +83,8 @@ public class RedisUtil {
         String driverHashKey = RedisPefix.DRIVER_INFO + driverId;
 
         Long result = redisTemplate.execute(
-                LockScript,
+                driverLockScript,
                 Collections.singletonList(driverHashKey),
-                "status",
                 String.valueOf(DriverStatusEnum.RECEIVING.getCode()),
                 String.valueOf(DriverStatusEnum.LEISURE.getCode())
         );

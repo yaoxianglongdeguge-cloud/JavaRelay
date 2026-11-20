@@ -42,8 +42,8 @@ public interface OrderMapper extends BaseMapper<Order> {
             "WHERE id = #{orderId} AND active_flag = #{fromFlag}" +
             "</script>")
     public int updateActiveFlag(@Param("orderId") Long orderId,
-                                              @Param("fromStatus") Integer fromFlag,
-                                              @Param("toStatus") Integer toFlag
+                                @Param("fromFlag") Integer fromFlag,
+                                @Param("toFlag") Integer toFlag
                                              );
 
 
