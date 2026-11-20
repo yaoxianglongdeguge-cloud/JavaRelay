@@ -1,22 +1,19 @@
 package com.example.javarelay.inform.massagetask.messagehandlersimpl;
 
 import com.example.javarelay.config.RootInformConfig;
-import com.example.javarelay.infra.messagetask.MessageCell;
+import com.example.javarelay.infra.mq.MessageCell;
 import com.example.javarelay.inform.constants.InformTypeEnum;
 import com.example.javarelay.inform.massagetask.messagecells.InformMessage;
-import com.example.javarelay.infra.messagetask.MessageHandler;
-import com.example.javarelay.infra.messagetask.MessageDispatcher;
+import com.example.javarelay.infra.mq.MessageHandler;
 import com.example.javarelay.infra.websocket.MyWebSocketHandler;
 import com.example.javarelay.inform.config.MessageTaskConfig;
 import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.messagetask.messagecells.OrderTimeoutMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 

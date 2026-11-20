@@ -14,20 +14,14 @@ public class InfoCollector {
     private Long orderId;
 
     private String selectPassengerStrategy;
-    private Integer passengerStrategyMark = null;
 
     private String selectDriverStrategy;
-    private Integer driverStrategyMark = null;
 
     private String selectPathStrategyType ;
-    private Integer pathStrategyMark = null;
 
     private String precomputeMoneyType ;
-    private Integer precomMark = null;
 
     private String computeMoneyType;
-    private Integer computeMark = null;
-
 
     private Long passengerId;
 

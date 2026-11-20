@@ -1,15 +1,11 @@
 package com.example.javarelay.statustransition.messagetask.messagehandlersimpl;
 
-import com.example.javarelay.inform.massagetask.messagecells.InformMessage;
-import com.example.javarelay.inform.service.InformService;
-import com.example.javarelay.infra.messagetask.MessageDispatcher;
 import com.example.javarelay.statustransition.config.MessageTaskConfig;
-import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.data.mapper.OrderDetailMapper;
-import com.example.javarelay.infra.messagetask.MessageCell;
+import com.example.javarelay.infra.mq.MessageCell;
 import com.example.javarelay.statustransition.messagetask.messagecells.ComputeMoneyMessage;
-import com.example.javarelay.infra.messagetask.MessageHandler;
+import com.example.javarelay.infra.mq.MessageHandler;
 import com.example.javarelay.statustransition.strategys.ComputeMoneyStrategy;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;

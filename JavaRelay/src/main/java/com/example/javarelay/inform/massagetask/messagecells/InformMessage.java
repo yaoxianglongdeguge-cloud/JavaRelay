@@ -1,6 +1,6 @@
 package com.example.javarelay.inform.massagetask.messagecells;
 
-import com.example.javarelay.infra.messagetask.MessageCell;
+import com.example.javarelay.infra.mq.MessageCell;
 import lombok.Data;
 
 @Data

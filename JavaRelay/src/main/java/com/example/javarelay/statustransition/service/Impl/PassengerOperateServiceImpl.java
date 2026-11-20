@@ -1,8 +1,9 @@
 package com.example.javarelay.statustransition.service.Impl;
 
 import com.alibaba.fastjson2.JSON;
+import com.example.javarelay.data.entity.OrderDetail;
 import com.example.javarelay.inform.constants.InformTypeEnum;
-import com.example.javarelay.infra.messagetask.MessageDispatcher;
+import com.example.javarelay.infra.mq.MessageDispatcher;
 import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.dto.DriverDto;
 import com.example.javarelay.statustransition.dto.PassengerDto;
@@ -25,13 +26,9 @@ import com.example.javarelay.statustransition.statusenum.OrderStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
-import static com.example.javarelay.statustransition.constants.Constants.RETRY_INTERVAL_MS;
 
 @Slf4j
 @Service
@@ -98,11 +95,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             return Result.fail("系统出问题");
         }
 
-        //插入数据采集器
-        Result result2 = strategysService.putInfoCollector(orderNew.getId(),passengerDto);
-        if(result2.getCode() != 200){
-            return result2;
-        }
+
 
        Result dispatched= DispatchOrder(passengerDto,orderNew);
 
@@ -172,12 +165,6 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         //计算金额
         strategysService.ComputeMoney(orderId);
-
-        Result result = strategysService.deleteInfoCollector(orderId);
-        if(result.getCode() != 200){
-            return Result.fail("系统出问题");
-        }
-
 
         return Result.success("订单已结束");
 
@@ -336,15 +323,11 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
         informService.informDriver(orderId,passengerId,driverId,
                 InformTypeEnum.STATUS_CONFIRM.getCode(),"已取消");
 
-        Result result = strategysService.deleteInfoCollector(orderId);
-        if(result.getCode() != 200){
-            return Result.fail("系统出问题");
-        }
-
         return Result.success("取消订单成功");
     }
 
     private Result DispatchOrder(PassengerDto passengerDto,Order order){
+
 
         Result result = AssignDriver(passengerDto.getPassengerId(),order.getId());
 
@@ -410,33 +393,20 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
     public Result ReDispatchOrder(Long orderId,Long passengerId) {
 
         Order order = null;
-        InfoCollector infoCollector = null;
-        for(int i = 0; i < 5;i++) {
 
-            try {
-                order = orderMapper.passengerSelectUnFinshed(passengerId);
-            } catch (Exception e) {
-                return Result.fail("系统出问题");
-            }
-
-            if (order == null) {
-                return Result.fail("不存在需要重派的订单");
-            }
-
-            String status = OrderStatusEnum.of(order.getStatus()).getDesc();
-            if (!status.equals("待派单")) {
-                return Result.fail("不存在需要重派的订单");
-            }
-
-            infoCollector = strategysService.getInfoCollector(orderId);
-            if (infoCollector == null) continue;
-            break;
-
+        try {
+            order = orderMapper.passengerSelectUnFinshed(passengerId);
+        } catch (Exception e) {
+            return Result.fail("系统出问题");
         }
-        if(infoCollector == null){
-            orderService.cancelAfterDispatchFail(order.getId(), passengerId,
-                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "系统出问题");
-            return Result.fail("系统问题");
+
+        if (order == null) {
+            return Result.fail("不存在需要重派的订单");
+        }
+
+        String status = OrderStatusEnum.of(order.getStatus()).getDesc();
+        if (!status.equals("待派单")) {
+            return Result.fail("不存在需要重派的订单");
         }
 
 
@@ -474,20 +444,33 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             return Result.fail("派单失败，请重试");
         }
 
-        //确定路线
         try{
 
+            OrderDetail orderDetail = null;
+            try{
+               orderDetail = orderDetailMapper.selectByOrderId(orderId);
+            }catch (Exception e){
+                throw new RuntimeException("数据库错误");
+            }
+
+            if(orderDetail == null){
+                throw new RuntimeException("数据库错误");
+            }
+
+            RouteInfo route = orderDetail.deserializeRouteInfo();
+
+            //确定路线
             Result resultPath = strategysService.findPathByStrategy(order.getId());
             RouteInfo routeInfo = (RouteInfo) resultPath.getData();
             routeInfo.setStartAndEnd(
-                    infoCollector.getStartLng(),
-                    infoCollector.getStartLat(),
-                    infoCollector.getEndLng(),
-                    infoCollector.getEndLat()
+                    route.getStartLng(),
+                    route.getStartLat(),
+                    route.getEndLng(),
+                    route.getEndLat()
             );
 
-            routeInfo.setStartAddress(infoCollector.getStartAddress());
-            routeInfo.setEndAddress(infoCollector.getEndAddress());
+            routeInfo.setStartAddress(route.getStartAddress());
+            routeInfo.setEndAddress(route.getEndAddress());
 
             //预估金额
             Result resultPreMoney = strategysService.preComputeMoney(order.getId());

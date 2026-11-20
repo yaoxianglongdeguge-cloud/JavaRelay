@@ -1,6 +1,6 @@
 package com.example.javarelay.statustransition.messagetask.messagecells;
 
-import com.example.javarelay.infra.messagetask.MessageCell;
+import com.example.javarelay.infra.mq.MessageCell;
 import com.example.javarelay.statustransition.config.MessageTaskConfig;
 import lombok.Data;
 

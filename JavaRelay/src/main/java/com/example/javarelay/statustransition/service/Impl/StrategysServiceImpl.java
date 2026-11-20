@@ -1,13 +1,13 @@
 package com.example.javarelay.statustransition.service.Impl;
 
-import com.example.javarelay.statustransition.config.MessageTaskConfig;
+import com.example.javarelay.data.entity.OrderDetail;
+import com.example.javarelay.data.mapper.OrderDetailMapper;
 import com.example.javarelay.statustransition.config.StrategyTypeConfig;
-import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
+import com.example.javarelay.statustransition.entity.RouteInfo;
 import com.example.javarelay.statustransition.infocollect.InfoCollector;
 import com.example.javarelay.statustransition.messagetask.messagecells.ComputeMoneyMessage;
-import com.example.javarelay.infra.messagetask.MessageDispatcher;
 import com.example.javarelay.statustransition.strategys.PreComputeStrategy;
 import com.example.javarelay.statustransition.strategys.SelectDriverStrategy;
 import com.example.javarelay.statustransition.strategys.SelectPassengerStrategy;
@@ -44,6 +44,8 @@ public class StrategysServiceImpl implements StrategysService {
     List<PreComputeStrategy> preComputeStrategyList;
     Map<String, PreComputeStrategy> preComputeStrategys = new HashMap<>();
 
+    @Autowired
+    OrderDetailMapper orderDetailMapper;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -69,33 +71,42 @@ public class StrategysServiceImpl implements StrategysService {
 
     }
 
-    public Result putInfoCollector(Long orderId, PassengerDto passengerDto){
+    public Result putInfoCollector(Long orderId){
+
+        OrderDetail orderDetail = null;
+        try{
+            orderDetail = orderDetailMapper.selectByOrderId(orderId);
+        }catch (Exception e){
+            return Result.fail("插入失败");
+        }
+
+        if(orderDetail == null){
+            return Result.fail("插入失败");
+        }
 
         InfoCollector infoCollector = new InfoCollector();
         infoCollector.setOrderId(orderId);
-        infoCollector.setSelectDriverStrategy(passengerDto.getSelectDriverStrategy());
-        infoCollector.setDriverStrategyMark(1);
+        infoCollector.setSelectDriverStrategy(orderDetail.getDriverType());
 
-        infoCollector.setSelectPassengerStrategy(StrategyTypeConfig.PASSENGER_SELECT_TYPE);
-        infoCollector.setPassengerStrategyMark(1);
+        infoCollector.setSelectPassengerStrategy(orderDetail.getPassengerType());
 
-        infoCollector.setPrecomputeMoneyType(StrategyTypeConfig.PRECOMPUTE_MONEY_TYPE);
-        infoCollector.setPrecomMark(1);
+        infoCollector.setPrecomputeMoneyType(orderDetail.getEspriceType());
 
-        infoCollector.setComputeMoneyType(passengerDto.getComputeMoneyType());
-        infoCollector.setComputeMark(1);
+        infoCollector.setComputeMoneyType(orderDetail.getAcpriceType());
 
-        infoCollector.setSelectPathStrategyType(StrategyTypeConfig.PATH_SELECT_TYPE);
-        infoCollector.setPathStrategyMark(1);
+        infoCollector.setSelectPathStrategyType(orderDetail.getPathType());
 
-        infoCollector.setPassengerId(passengerDto.getPassengerId());
-        infoCollector.setStartLat(passengerDto.getStartLat());
-        infoCollector.setStartLng(passengerDto.getStartLng());
-        infoCollector.setEndLat(passengerDto.getEndLat());
-        infoCollector.setEndLng(passengerDto.getEndLng());
+        infoCollector.setPassengerId(orderDetail.getPassengerId());
 
-        infoCollector.setStartAddress(passengerDto.getStartAddress());
-        infoCollector.setEndAddress(passengerDto.getEndAddress());
+        RouteInfo routeInfo = orderDetail.deserializeRouteInfo();
+
+        infoCollector.setStartLat(routeInfo.getStartLat());
+        infoCollector.setStartLng(routeInfo.getStartLng());
+        infoCollector.setEndLat(routeInfo.getEndLat());
+        infoCollector.setEndLng(routeInfo.getEndLng());
+
+        infoCollector.setStartAddress(routeInfo.getStartAddress());
+        infoCollector.setEndAddress(routeInfo.getEndAddress());
 
         infoCollectors.put(orderId,infoCollector);
 
@@ -116,15 +127,19 @@ public class StrategysServiceImpl implements StrategysService {
 
     }
 
-    public InfoCollector getInfoCollector(Long orderId){
-       return infoCollectors.get(orderId);
+    public InfoCollector getInfoCollector(Long orderId) {
+        InfoCollector c = infoCollectors.get(orderId);
+        if (c != null) return c;
+        putInfoCollector(orderId);
+        return infoCollectors.get(orderId);
     }
 
 
 
     @Override
     public Result findPassengerByStrategy(Long orderId) {
-        InfoCollector infoCollector = infoCollectors.get(orderId);
+        InfoCollector infoCollector = getInfoCollector(orderId);
+        if (infoCollector == null) return Result.fail("上下文构建失败");
         String type = infoCollector.getSelectPassengerStrategy();
         return selectPassengerStrategys.get(type).findPassengerStrategy(infoCollector);
     }
@@ -132,21 +147,25 @@ public class StrategysServiceImpl implements StrategysService {
     @Override
     public Result findDriverByStrategy(Long orderId) {
 
-        InfoCollector infoCollector = infoCollectors.get(orderId);
+        InfoCollector infoCollector = getInfoCollector(orderId);
+        if (infoCollector == null) return Result.fail("上下文构建失败");
         String type = infoCollector.getSelectDriverStrategy();
         return selectDriverStrategys.get(type).findDriverStrategy(infoCollector);
     }
 
     @Override
     public Result findPathByStrategy(Long orderId) {
-        InfoCollector infoCollector = infoCollectors.get(orderId);
+        InfoCollector infoCollector = getInfoCollector(orderId);
+        if (infoCollector == null) return Result.fail("上下文构建失败");
         String type = infoCollector.getSelectPathStrategyType();
+        deleteInfoCollector(orderId);
         return selectPathStrategys.get(type).findPathStrategy(infoCollector);
     }
 
     @Override
     public Result preComputeMoney(Long orderId) {
-        InfoCollector infoCollector = infoCollectors.get(orderId);
+        InfoCollector infoCollector = getInfoCollector(orderId);
+        if (infoCollector == null) return Result.fail("上下文构建失败");
         String type = infoCollector.getPrecomputeMoneyType();
         return preComputeStrategys.get(type).PreComputeStrategy(infoCollector);
     }

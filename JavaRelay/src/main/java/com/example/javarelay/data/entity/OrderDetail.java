@@ -31,8 +31,12 @@ public class OrderDetail {
 
     private BigDecimal estimatedPrice;
     private BigDecimal actualPrice;
-    private String acpricetype;
-    private String espricetype;
+
+    private String acpriceType;
+    private String espriceType;
+    private String driverType;
+    private String passengerType;
+    private String pathType;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

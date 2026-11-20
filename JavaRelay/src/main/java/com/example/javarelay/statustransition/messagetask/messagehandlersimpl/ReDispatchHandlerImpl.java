@@ -1,10 +1,9 @@
 package com.example.javarelay.statustransition.messagetask.messagehandlersimpl;
 
 import com.example.javarelay.statustransition.config.MessageTaskConfig;
-import com.example.javarelay.statustransition.constants.Constants;
-import com.example.javarelay.infra.messagetask.MessageCell;
+import com.example.javarelay.infra.mq.MessageCell;
 import com.example.javarelay.statustransition.messagetask.messagecells.ReDispatchMessage;
-import com.example.javarelay.infra.messagetask.MessageHandler;
+import com.example.javarelay.infra.mq.MessageHandler;
 import com.example.javarelay.statustransition.service.PassengerOperateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

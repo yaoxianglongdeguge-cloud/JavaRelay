@@ -1,12 +1,9 @@
 package com.example.javarelay.inform.service.impl;
 
 import com.example.javarelay.config.RootInformConfig;
-import com.example.javarelay.inform.config.MessageTaskConfig;
 import com.example.javarelay.inform.service.InformService;
-import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.inform.massagetask.messagecells.InformMessage;
-import com.example.javarelay.infra.messagetask.MessageDispatcher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;

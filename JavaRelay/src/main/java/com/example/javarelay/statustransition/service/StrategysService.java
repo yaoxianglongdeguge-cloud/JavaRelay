@@ -6,7 +6,7 @@ import com.example.javarelay.statustransition.infocollect.InfoCollector;
 
 public interface StrategysService {
 
-    public Result putInfoCollector(Long orderId, PassengerDto passengerDto);
+    public Result putInfoCollector(Long orderId);
 
     public Result deleteInfoCollector(Long orderId);
 

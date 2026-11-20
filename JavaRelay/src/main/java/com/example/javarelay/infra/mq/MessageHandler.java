@@ -1,7 +1,5 @@
-package com.example.javarelay.infra.messagetask;
+package com.example.javarelay.infra.mq;
 
-
-import java.util.List;
 
 public interface MessageHandler {
 

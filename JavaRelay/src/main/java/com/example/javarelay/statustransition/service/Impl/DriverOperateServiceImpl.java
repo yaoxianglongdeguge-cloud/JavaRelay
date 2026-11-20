@@ -1,6 +1,5 @@
 package com.example.javarelay.statustransition.service.Impl;
 
-import com.example.javarelay.statustransition.config.MessageTaskConfig;
 import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.inform.constants.InformTypeEnum;
 import com.example.javarelay.statustransition.dto.DriverDto;
@@ -12,7 +11,7 @@ import com.example.javarelay.data.mapper.DriverMapper;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.data.mapper.OrderStatusLogMapper;
 import com.example.javarelay.statustransition.messagetask.messagecells.ReDispatchMessage;
-import com.example.javarelay.infra.messagetask.MessageDispatcher;
+import com.example.javarelay.infra.mq.MessageDispatcher;
 import com.example.javarelay.statustransition.service.DriverOperateService;
 import com.example.javarelay.inform.service.InformService;
 import com.example.javarelay.statustransition.service.OrderService;
@@ -185,11 +184,6 @@ public class DriverOperateServiceImpl implements DriverOperateService {
 
         //计算金额
         strategysService.ComputeMoney(orderId);
-
-        Result result = strategysService.deleteInfoCollector(orderId);
-        if(result.getCode() != 200){
-            return Result.fail("系统出问题");
-        }
 
 
         return Result.success("订单已结束");

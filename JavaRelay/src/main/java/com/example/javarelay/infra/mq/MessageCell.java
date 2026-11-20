@@ -1,6 +1,5 @@
-package com.example.javarelay.infra.messagetask;
+package com.example.javarelay.infra.mq;
 
-import com.example.javarelay.statustransition.messagetask.messagecells.OrderTimeoutMessage;
 import jakarta.annotation.Nonnull;
 import lombok.Data;
 

@@ -7,6 +7,7 @@ import com.example.javarelay.dto.Result;
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.data.entity.OrderDetail;
 import com.example.javarelay.data.entity.OrderStatusLog;
+import com.example.javarelay.statustransition.entity.RouteInfo;
 import com.example.javarelay.statustransition.exception.StatusChangeException;
 import com.example.javarelay.data.mapper.DriverMapper;
 import com.example.javarelay.data.mapper.OrderDetailMapper;
@@ -76,8 +77,20 @@ public class OrderServiceImpl implements OrderService {
         OrderDetail orderDetail= new OrderDetail();
         orderDetail.setOrderId(order1.getId());
         orderDetail.setPassengerId(passengerId);
-        orderDetail.setAcpricetype(passengerDto.getComputeMoneyType());
-        orderDetail.setEspricetype(StrategyTypeConfig.PRECOMPUTE_MONEY_TYPE);
+        orderDetail.setAcpriceType(passengerDto.getComputeMoneyType());
+        orderDetail.setEspriceType(StrategyTypeConfig.PRECOMPUTE_MONEY_TYPE);
+        orderDetail.setDriverType(passengerDto.getSelectDriverStrategy());
+        orderDetail.setPassengerType(StrategyTypeConfig.PASSENGER_SELECT_TYPE);
+        orderDetail.setPathType(StrategyTypeConfig.PATH_SELECT_TYPE);
+
+        RouteInfo route = new RouteInfo();
+        route.setStartAndEnd(
+                passengerDto.getStartLng(), passengerDto.getStartLat(),
+                passengerDto.getEndLng(), passengerDto.getEndLat());
+        route.setStartAddress(passengerDto.getStartAddress());
+        route.setEndAddress(passengerDto.getEndAddress());
+
+        orderDetail.serializeRouteInfo(route);
 
         try{
             orderDetailMapper.insert(orderDetail);

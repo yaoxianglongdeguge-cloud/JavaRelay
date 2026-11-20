@@ -18,7 +18,7 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
             "  <if test='routeSnapshot != null'> route_snapshot = #{routeSnapshot}, </if>" +
             "  update_time = NOW() " +
             "</set> " +
-            "WHERE order_id = #{orderId} AND route_snapshot IS NULL" +
+            "WHERE order_id = #{orderId} AND estimated_price IS NULL" +
             "</script>")
     public int initOrderDetail(
             @Param("orderId") Long orderId,
@@ -32,7 +32,10 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
             @Param("orderId") Long orderId,
             @Param("actual_price") BigDecimal actual_price);
 
-    @Select("select acpricetype from order_detail where order_id = #{orderId}")
+    @Select("select acprice_type from order_detail where order_id = #{orderId}")
     public String getActualPriceType(@Param("orderId") Long orderId);
+
+    @Select("SELECT * FROM order_detail WHERE order_id = #{orderId}")
+    OrderDetail selectByOrderId(@Param("orderId") Long orderId);
 
 }

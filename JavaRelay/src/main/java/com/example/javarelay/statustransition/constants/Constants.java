@@ -20,4 +20,7 @@ public class Constants {
     public static final int SERVE_DRIVERS_SCAN = 5000;
 
     public static final int DRIVER_PATROL_INTERVAL = 3000;
+
+    public static final int DISPATCH_RECOVER_BATCH = 200;      // 每批条数
+    public static final int DISPATCH_RECOVER_MAX_AGE_HOURS = 2; // 小时
 }

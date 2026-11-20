@@ -2,8 +2,8 @@ package com.example.javarelay.statustransition.messagetask.messagehandlersimpl;
 
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.data.mapper.OrderMapper;
-import com.example.javarelay.infra.messagetask.MessageCell;
-import com.example.javarelay.infra.messagetask.MessageHandler;
+import com.example.javarelay.infra.mq.MessageCell;
+import com.example.javarelay.infra.mq.MessageHandler;
 import com.example.javarelay.statustransition.config.MessageTaskConfig;
 import com.example.javarelay.statustransition.exception.StatusChangeException;
 import com.example.javarelay.statustransition.service.OrderService;
