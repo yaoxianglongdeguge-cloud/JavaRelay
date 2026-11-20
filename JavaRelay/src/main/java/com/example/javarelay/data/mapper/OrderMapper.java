@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
+
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
 
@@ -54,5 +56,9 @@ public interface OrderMapper extends BaseMapper<Order> {
     @Select("SELECT * FROM orders WHERE driver_id = #{driverId} " +
             "AND active_flag = 1 ORDER BY create_time DESC LIMIT 1")
     public Order driverSelectUnFinshed(Long driverId);
+
+    @Select("SELECT * FROM orders WHERE active_flag = 1 AND status IN (0, 1) " +
+            "AND update_time < DATE_SUB(NOW(), INTERVAL #{minutes} MINUTE) LIMIT 100")
+    List<Order> selectStuckOrders(@Param("minutes") int minutes);
 
 }
