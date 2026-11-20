@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,13 +22,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 @Data
 @Component
-public class DriverPatrolTask implements Runnable{
-
-    public final AtomicLong lastHeartbeat = new AtomicLong(System.currentTimeMillis());
+public class DriverPatrolTask{
 
     private static AtomicInteger nextScan = new AtomicInteger(0);
-
-    private Future<?> patrolFuture = null;
 
     @Autowired
     DriverMapper driverMapper;
@@ -35,21 +32,8 @@ public class DriverPatrolTask implements Runnable{
     StringRedisTemplate stringRedisTemplate;
 
 
-    @Override
-    public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
-            try {
-                scanDriver();
-                lastHeartbeat.set(System.currentTimeMillis());
-                Thread.sleep(Constants.DRIVER_PATROL_INTERVAL);
-            } catch (InterruptedException e) {
-                log.info("对账任务收到中断");
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-    }
 
+    @Scheduled(fixedDelay = Constants.DRIVER_PATROL_INTERVAL)
     private void scanDriver(){
 
         while (true) {

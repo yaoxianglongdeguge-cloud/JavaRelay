@@ -2,6 +2,9 @@ package com.example.javarelay.statustransition.constants;
 
 public class Constants {
 
+    public static final long DISPATCH_TIMEOUT_MS = 3000;
+    public static final long RETRY_INTERVAL_MS  = 300;
+
 
     public static final Integer ACTIVE_ORDER = 1;
     public static final Integer FINISHED_ORDER = null;

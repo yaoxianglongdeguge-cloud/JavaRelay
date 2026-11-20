@@ -26,6 +26,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+import static com.example.javarelay.statustransition.constants.Constants.RETRY_INTERVAL_MS;
+
 @Slf4j
 @Service
 public class PassengerOperateServiceImpl implements PassengerOperateService {
@@ -199,9 +201,9 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         //筛选司机
         DriverDto driverDto = null;
-        int tryNum = 5;
+        long deadline = System.currentTimeMillis() + Constants.DISPATCH_TIMEOUT_MS;
 
-        while((tryNum = tryNum - 1) > 0){
+        while (System.currentTimeMillis() < deadline) {
 
             Order order = orderMapper.selectByPassenger(passengerId);
 
@@ -234,17 +236,13 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
                             DriverStatusEnum.RECEIVING.getCode());
 
                 }catch(StatusChangeException e) {
+                    //如果修改数据库失败就解锁司机
                     redisUtil.tryunLockDriver(driverDto.getDriverId());
                     String reason = e.getMessage();
                     if("DRIVER_CHANGE_FAIL".equals(reason)){
-                        //如果修改数据库失败就解锁司机
-                        redisUtil.tryunLockDriver(driverDto.getDriverId());
                         continue;
 
                     }else if("ORDER_CHANGE_FAIL".equals(reason)){
-                        //如果修改数据库失败就解锁司机
-                        redisUtil.tryunLockDriver(driverDto.getDriverId());
-
                         return Result.fail("订单已结束");
                     }
 
@@ -259,10 +257,18 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
                 break;
 
             }else{
-                break;
+                try {
+                    Thread.sleep(Constants.RETRY_INTERVAL_MS);      // 没候选，等一会再看
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
         }
 
+        if (driverDto == null) {
+            return Result.fail("附近暂无可用司机，请稍后重试");
+        }
 
         return Result.success(driverDto);
 
@@ -329,11 +335,19 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         Result result = AssignDriver(passengerDto.getPassengerId(),order.getId());
 
-        if(result.getCode() != 200){
+        if (result.getCode() != 200) {
+            // 没派到：订单还是 0，没有司机要还
+            orderService.cancelAfterDispatchFail(order.getId(), passengerDto.getPassengerId(),
+                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, result.getMessage());
             return result;
         }
 
         DriverDto driverDto = (DriverDto) result.getData();
+        if (driverDto == null || driverDto.getDriverId() == null) {
+            orderService.cancelAfterDispatchFail(order.getId(), passengerDto.getPassengerId(),
+                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "派单结果异常");
+            return Result.fail("派单失败，请重试");
+        }
 
         //确定路线
         try{
@@ -384,9 +398,9 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
     public Result ReDispatchOrder(Long orderId,Long passengerId) {
 
-        Order order;
-        InfoCollector infoCollector;
-        while (true) {
+        Order order = null;
+        InfoCollector infoCollector = null;
+        for(int i = 0; i < 5;i++) {
 
             try {
                 order = orderMapper.passengerSelectUnFinshed(passengerId);
@@ -408,15 +422,28 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             break;
 
         }
+        if(infoCollector == null){
+            orderService.cancelAfterDispatchFail(order.getId(), passengerId,
+                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "系统出问题");
+            return Result.fail("系统问题");
+        }
 
 
         Result result = AssignDriver(passengerId, order.getId());
 
         if (result.getCode() != 200) {
+            // 没派到：订单还是 0，没有司机要还
+            orderService.cancelAfterDispatchFail(order.getId(), passengerId,
+                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, result.getMessage());
             return result;
         }
 
         DriverDto driverDto = (DriverDto) result.getData();
+        if (driverDto == null || driverDto.getDriverId() == null) {
+            orderService.cancelAfterDispatchFail(order.getId(), passengerId,
+                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "派单结果异常");
+            return Result.fail("派单失败，请重试");
+        }
 
         //确定路线
         try{

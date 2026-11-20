@@ -2,10 +2,7 @@ package com.example.javarelay.statustransition.controller;
 
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.statustransition.dto.DriverDto;
-import com.example.javarelay.statustransition.dto.PassengerDto;
-import com.example.javarelay.statustransition.messagetask.messagecells.DriverPatrolMessage;
 import com.example.javarelay.statustransition.service.DriverOperateService;
-import com.example.javarelay.statustransition.service.DriverPatrolService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

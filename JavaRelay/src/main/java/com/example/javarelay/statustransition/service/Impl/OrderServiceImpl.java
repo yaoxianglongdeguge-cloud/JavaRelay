@@ -153,7 +153,6 @@ public class OrderServiceImpl implements OrderService {
     public void cancelAfterDispatchFail(Long orderId, Long passengerId,
                                         Integer fromStatus, Long driverId, String reason) {
 
-        // 1) 订单置为已取消（乐观锁：状态已变就跳过，保证幂等）
         int rows = orderMapper.updateStatusWithOptimisticLock(
                 orderId, fromStatus, OrderStatusEnum.CANCELED.getCode(), null);
         if (rows == 0) {
@@ -161,15 +160,13 @@ public class OrderServiceImpl implements OrderService {
             return;
         }
 
-        // 2) 置为不活跃
         orderMapper.updateActiveFlag(orderId, Constants.ACTIVE_ORDER, Constants.FINISHED_ORDER);
 
-        // 3) 记一笔流转日志，operator=SYSTEM，便于事后排查
+
         orderStatusLogMapper.insert(new OrderStatusLog(
                 orderId, fromStatus, OrderStatusEnum.CANCELED.getCode(),
                 OrderOperatorEnum.SYSTEM.getCode(), passengerId));
 
-        // 4) 已派出去的司机要还回去
         if (driverId != null) {
             int dr = driverMapper.updateStatusWithOptimisticLock(
                     driverId,
