@@ -1,5 +1,6 @@
 package com.example.javarelay.statustransition.service.Impl;
 
+import com.example.javarelay.statustransition.config.StrategyTypeConfig;
 import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
@@ -75,6 +76,8 @@ public class OrderServiceImpl implements OrderService {
         OrderDetail orderDetail= new OrderDetail();
         orderDetail.setOrderId(order1.getId());
         orderDetail.setPassengerId(passengerId);
+        orderDetail.setAcpricetype(passengerDto.getComputeMoneyType());
+        orderDetail.setEspricetype(StrategyTypeConfig.PRECOMPUTE_MONEY_TYPE);
 
         try{
             orderDetailMapper.insert(orderDetail);

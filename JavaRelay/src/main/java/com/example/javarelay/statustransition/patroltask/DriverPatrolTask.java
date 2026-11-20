@@ -36,43 +36,41 @@ public class DriverPatrolTask{
     @Scheduled(fixedDelay = Constants.DRIVER_PATROL_INTERVAL)
     private void scanDriver(){
 
-        while (true) {
+        List<DriverRedis> needInsert = null;
+        try {
+            needInsert = driverMapper.getDriverRedis(nextScan.get(), Constants.SERVE_DRIVERS_SCAN);
+        } catch (Exception e) {
+            log.info("司机扫描出错");
+        }
 
-            List<DriverRedis> needInsert = null;
-            try {
-                needInsert = driverMapper.getDriverRedis(nextScan.get(), Constants.SERVE_DRIVERS_SCAN);
-            } catch (Exception e) {
-                log.info("司机扫描出错");
-            }
+        if(needInsert == null){
+            nextScan.set(0);
+            return;
+        }
 
-            if(needInsert == null){
-                nextScan.set(0);
+        if (needInsert.size() < Constants.SERVE_DRIVERS_SCAN) {
+            nextScan.set(0);
+        } else {
+            nextScan.addAndGet(needInsert.size());
+        }
+
+        for (DriverRedis s : needInsert) {
+            String jsonDriver = stringRedisTemplate.opsForValue().get(RedisPefix.DRIVER_INFO + s.getId());
+            DriverRedis driver = JSON.parseObject(jsonDriver, DriverRedis.class);
+
+            if (driver == null) {
+                int a = 0;
+            } else if (!driver.equals(s)) {
+                stringRedisTemplate.delete(RedisPefix.DRIVER_INFO + s.getId());
+
+            } else {
                 continue;
             }
 
-            if (needInsert.size() < Constants.SERVE_DRIVERS_SCAN) {
-                nextScan.set(0);
-            } else {
-                nextScan.addAndGet(needInsert.size());
-            }
+            stringRedisTemplate.opsForValue().set(RedisPefix.DRIVER_INFO + s.getId(), JSON.toJSONString(s));
 
-            for (DriverRedis s : needInsert) {
-                String jsonDriver = stringRedisTemplate.opsForValue().get(RedisPefix.DRIVER_INFO + s.getId());
-                DriverRedis driver = JSON.parseObject(jsonDriver, DriverRedis.class);
-
-                if (driver == null) {
-                    int a = 0;
-                } else if (!driver.equals(s)) {
-                    stringRedisTemplate.delete(RedisPefix.DRIVER_INFO + s.getId());
-
-                } else {
-                    continue;
-                }
-
-                stringRedisTemplate.opsForValue().set(RedisPefix.DRIVER_INFO + s.getId(), JSON.toJSONString(s));
-
-            }
         }
-
     }
+
+
 }

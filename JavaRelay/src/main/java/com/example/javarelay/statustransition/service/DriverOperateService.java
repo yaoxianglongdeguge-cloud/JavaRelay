@@ -11,4 +11,6 @@ public interface DriverOperateService {
 
     public Result ReceiveOrder(DriverDto driverDto);
 
+    public Result ArriveOrder(Long driverId);
+
 }

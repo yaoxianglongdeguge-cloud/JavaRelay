@@ -2,6 +2,7 @@ package com.example.javarelay.statustransition.service.Impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.inform.constants.InformTypeEnum;
+import com.example.javarelay.infra.messagetask.MessageDispatcher;
 import com.example.javarelay.statustransition.constants.Constants;
 import com.example.javarelay.statustransition.dto.DriverDto;
 import com.example.javarelay.statustransition.dto.PassengerDto;
@@ -14,6 +15,7 @@ import com.example.javarelay.infra.RedisUtil;
 import com.example.javarelay.data.mapper.OrderDetailMapper;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.inform.service.InformService;
+import com.example.javarelay.statustransition.messagetask.messagecells.ReDispatchMessage;
 import com.example.javarelay.statustransition.service.OrderService;
 import com.example.javarelay.statustransition.service.PassengerOperateService;
 import com.example.javarelay.statustransition.service.StrategysService;
@@ -22,9 +24,12 @@ import com.example.javarelay.statustransition.statusenum.OrderOperatorEnum;
 import com.example.javarelay.statustransition.statusenum.OrderStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static com.example.javarelay.statustransition.constants.Constants.RETRY_INTERVAL_MS;
 
@@ -46,6 +51,9 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
     @Autowired
     InformService informService;
+
+    @Autowired
+    ApplicationContext ctx;
 
     @Autowired
     RedisUtil redisUtil;
@@ -96,13 +104,22 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             return result2;
         }
 
-       Result result = DispatchOrder(passengerDto,orderNew);
+       Result dispatched= DispatchOrder(passengerDto,orderNew);
 
-        if(result.getCode() != 200){
-            return result;
+
+        if (dispatched.getCode() == 200) {
+            return Result.success("分配成功,司机正在赶来");
         }
 
-        return Result.success("分配成功,司机正在赶来");
+        MessageDispatcher dispatcher = ctx.getBean(MessageDispatcher.class);   // 调用时才解析
+        boolean queued = dispatcher.addTask(new ReDispatchMessage(orderNew.getId(), passengerId));
+
+        if (!queued) {
+            orderService.cancelAfterDispatchFail(orderNew.getId(), passengerId,
+                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "派单队列已满");
+            return Result.fail("当前订单过多，请稍后重试");
+        }
+        return Result.success("已下单，正在为您寻找车辆", orderNew);
     }
 
 
@@ -201,19 +218,19 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         //筛选司机
         DriverDto driverDto = null;
-        long deadline = System.currentTimeMillis() + Constants.DISPATCH_TIMEOUT_MS;
-
-        while (System.currentTimeMillis() < deadline) {
 
             Order order = orderMapper.selectByPassenger(passengerId);
 
 
-            if(order != null){
-                String status = OrderStatusEnum.of(order.getStatus()).getDesc();
-                if(status.equals("已取消") || status.equals("已完成")){
-                    return Result.fail("订单已结束");
-                }
+        if(order != null){
+            String status = OrderStatusEnum.of(order.getStatus()).getDesc();
+            if(status.equals("已取消") || status.equals("已完成")){
+                return Result.fail("订单已结束");
             }
+        }
+
+        long deadline = System.currentTimeMillis() + Constants.DISPATCH_TIMEOUT_MS;
+        while (System.currentTimeMillis() < deadline) {
 
             Result picked = strategysService.findDriverByStrategy(orderId);
 
@@ -245,6 +262,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
                     }else if("ORDER_CHANGE_FAIL".equals(reason)){
                         return Result.fail("订单已结束");
                     }
+                    continue;
 
                 }catch (Exception e) {
                     redisUtil.tryunLockDriver(driverDto.getDriverId());
@@ -257,12 +275,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
                 break;
 
             }else{
-                try {
-                    Thread.sleep(Constants.RETRY_INTERVAL_MS);      // 没候选，等一会再看
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+                break;
             }
         }
 
@@ -337,8 +350,6 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         if (result.getCode() != 200) {
             // 没派到：订单还是 0，没有司机要还
-            orderService.cancelAfterDispatchFail(order.getId(), passengerDto.getPassengerId(),
-                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, result.getMessage());
             return result;
         }
 
@@ -432,10 +443,28 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
         Result result = AssignDriver(passengerId, order.getId());
 
         if (result.getCode() != 200) {
-            // 没派到：订单还是 0，没有司机要还
-            orderService.cancelAfterDispatchFail(order.getId(), passengerId,
-                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, result.getMessage());
-            return result;
+
+            long ageMs = System.currentTimeMillis() - order.getCreateTime()
+                    .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+            //防止无限重投
+            if (ageMs > Constants.REDISPATCH_DEADLINE) {
+                orderService.cancelAfterDispatchFail(orderId, passengerId,
+                        OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "长时间无可用司机");
+                return Result.fail("派单超时，已取消");
+            }
+
+            ReDispatchMessage retry = new ReDispatchMessage(orderId, passengerId);
+            retry.setExecuteTime(System.currentTimeMillis() + 500);   // 500ms 后重试
+            MessageDispatcher dispatcher = ctx.getBean(MessageDispatcher.class);   // 调用时才解析
+
+            if (!dispatcher.addTask(retry)) {
+                orderService.cancelAfterDispatchFail(orderId, passengerId,
+                        OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "派单队列已满");
+            }
+
+            return Result.fail("匹配失败");
+
         }
 
         DriverDto driverDto = (DriverDto) result.getData();
@@ -494,4 +523,5 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
 
     }
+
 }

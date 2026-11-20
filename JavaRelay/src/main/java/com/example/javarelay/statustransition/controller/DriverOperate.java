@@ -14,8 +14,6 @@ public class DriverOperate {
 
     @Autowired
     DriverOperateService driverOperateService;
-    @Autowired
-    DriverPatrolService driverPatrolService;
 
     @PostMapping("/driver/order/receive")
     public Result receiveOrder(@RequestParam("driverId") Long driverId,
@@ -37,10 +35,9 @@ public class DriverOperate {
         return  driverOperateService.FinishOrder(driverId);
     }
 
-    @PostMapping("/driver/patrol")
-    public Result checkPatrol(@RequestParam("driverId") Long driverId){
-        driverPatrolService.CheckDriverPatrolHeart();
-        return Result.success();
+    @PostMapping("/driver/order/arrive")
+    public Result arriveOrder(@RequestParam("driverId") Long driverId) {
+        return driverOperateService.ArriveOrder(driverId);
     }
 
 }

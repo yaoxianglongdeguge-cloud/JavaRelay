@@ -31,7 +31,8 @@ public class OrderDetail {
 
     private BigDecimal estimatedPrice;
     private BigDecimal actualPrice;
-    private String pricingRuleSnapshot;
+    private String acpricetype;
+    private String espricetype;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

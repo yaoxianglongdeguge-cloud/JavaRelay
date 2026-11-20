@@ -23,6 +23,8 @@ import com.example.javarelay.statustransition.statusenum.OrderStatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 public class DriverOperateServiceImpl implements DriverOperateService {
 
@@ -97,6 +99,40 @@ public class DriverOperateServiceImpl implements DriverOperateService {
                 InformTypeEnum.STATUS_CONFIRM.getCode(),"已取消");
 
         return Result.success("取消订单成功");
+    }
+
+    @Override
+    public Result ArriveOrder(Long driverId) {
+
+        Order order;
+        try {
+            order = orderMapper.driverSelectUnFinshed(driverId);
+        } catch (Exception e) {
+            return Result.fail("系统问题");
+        }
+
+        if (order == null) {
+            return Result.success("没有未完成订单");
+        }
+
+        Integer from = order.getStatus();
+        if (!Objects.equals(from, OrderStatusEnum.RECEIVED.getCode())) {
+            return Result.fail("订单不是已接单状态");
+        }
+
+        try {
+            orderService.changeOrderStatus(order.getId(), order.getPassengerId(),
+                    from, OrderStatusEnum.ARRIVED.getCode(),
+                    OrderOperatorEnum.DRIVER.getCode(),
+                    null, null, null);          // ← 注意：司机状态不用动，传 null
+        } catch (StatusChangeException e) {
+            return Result.success("订单状态已变化");
+        }
+
+        informService.informPassenger(order.getId(), driverId, order.getPassengerId(),
+                InformTypeEnum.STATUS_CONFIRM.getCode(), "司机已到达");
+
+        return Result.success("已到达");
     }
 
     @Override
@@ -234,7 +270,11 @@ public class DriverOperateServiceImpl implements DriverOperateService {
                     OrderStatusEnum.WAITING_DISPATCH.getCode(),
                     OrderOperatorEnum.DRIVER.getCode(),
 
-                    null,null,null);
+                    driverId,
+                    DriverStatusEnum.RECEIVING.getCode(),
+                    DriverStatusEnum.LEISURE.getCode());
+            // 0
+            redisUtil.tryunLockDriver(driverId);
 
         }catch(StatusChangeException e) {
 

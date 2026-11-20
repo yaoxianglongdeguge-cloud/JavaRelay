@@ -76,6 +76,7 @@ public class OrderReceiveDelayHandler implements MessageHandler {
         Order order = null;
         try{
             order = orderMapper.selectById(orderId);
+            if (order == null) return;
         }catch (Exception e){
             log.info("系统问题");
         }

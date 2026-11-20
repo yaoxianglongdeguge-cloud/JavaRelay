@@ -61,7 +61,6 @@ public class InformHandler implements MessageHandler {
         Integer type = msg.getMsgType();
         String message = msg.getMessage();
         Long orderId = msg.getOrderId();
-        Long meId = msg.getMeId();
 
         if(type == InformTypeEnum.STATUS_CONFIRM.getCode()){
 
@@ -70,8 +69,7 @@ public class InformHandler implements MessageHandler {
 
             if(toWho.equals(RootInformConfig.TO_DRIVER) && message.equals("已派单")){
                 //如果是通知司机来接单，那还要维护超时任务，防止司机长时间不接单
-                OrderTimeoutMessage messageCell1 = new OrderTimeoutMessage(orderId,meId);
-                messageCell1.setExecuteTime(Constants.ORDER_TIMEOUT_TIME);
+                OrderTimeoutMessage messageCell1 = new OrderTimeoutMessage(orderId,Constants.ORDER_TIMEOUT_TIME);
 
                 eventPublisher.publishEvent(messageCell1);
             }

@@ -25,7 +25,7 @@ public class ReDispatchHandlerImpl implements MessageHandler {
     ThreadPoolExecutor computeMoneyExecutor = new ThreadPoolExecutor(
             4, 8, 60L, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(2000),
-            r -> new Thread(r, "compute-money-worker"),
+            r -> new Thread(r, "reDisPatch-worker"),
             new ThreadPoolExecutor.AbortPolicy()
     );
 

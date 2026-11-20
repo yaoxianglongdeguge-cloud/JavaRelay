@@ -30,12 +30,12 @@ public interface OrderMapper extends BaseMapper<Order> {
             "UPDATE orders SET status = #{toStatus}, update_time = NOW() " +
             "<if test='driverId != null'>, driver_id = #{driverId} </if>" +
             "WHERE id = #{orderId} AND status IN " +
-            "<foreach collection='array' item='status' open='(' separator=',' close=')'>" +
+            "<foreach collection='fromStatus' item='status' open='(' separator=',' close=')'>" +
             "#{status}" +
             "</foreach>" +
             "</script>")
     public int updateCancelWithOptimisticLock(@Param("orderId") Long orderId,
-                                              Integer[] fromStatus,
+                                              @Param("fromStatus") Integer[] fromStatus,
                                               @Param("toStatus") Integer toStatus,
                                               @Param("driverId") Long driverId);
 
