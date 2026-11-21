@@ -1,7 +1,7 @@
 package com.example.javarelay.data.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.example.javarelay.statustransition.constants.Constants;
+import com.example.javarelay.orderstatus.constants.Constants;
 import lombok.Data;
 
 import java.time.LocalDateTime;

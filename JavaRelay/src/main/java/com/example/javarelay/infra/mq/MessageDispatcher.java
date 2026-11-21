@@ -1,6 +1,6 @@
 package com.example.javarelay.infra.mq;
 
-import com.example.javarelay.config.RootMessageTaskConfig;
+import com.example.javarelay.globalconfig.RootMessageTaskConfig;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

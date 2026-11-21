@@ -1,7 +1,6 @@
 package com.example.javarelay.infra.websocket;
 
 import com.example.javarelay.rootconstants.RootConstants;
-import com.example.javarelay.statustransition.constants.Constants;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;

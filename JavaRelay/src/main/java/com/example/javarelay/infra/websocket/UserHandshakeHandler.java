@@ -12,7 +12,7 @@ public class UserHandshakeHandler extends DefaultHandshakeHandler {
     protected Principal determineUser(ServerHttpRequest request,
                                       WebSocketHandler wsHandler,
                                       Map<String, Object> attributes) {
-        String userType = (String) attributes.get("usertype");
+        String userType = (String) attributes.get("userType");
         String userId = (String) attributes.get("userId");
 
         return () -> userType+":"+userId;

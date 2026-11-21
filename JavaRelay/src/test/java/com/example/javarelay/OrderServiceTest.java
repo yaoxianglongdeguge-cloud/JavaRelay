@@ -1,8 +1,8 @@
 package com.example.javarelay;
 
 import com.example.javarelay.dto.Result;
-import com.example.javarelay.statustransition.dto.PassengerDto;
-import com.example.javarelay.statustransition.service.OrderService;
+import com.example.javarelay.orderstatus.dto.PassengerDto;
+import com.example.javarelay.orderstatus.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

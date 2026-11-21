@@ -2,7 +2,7 @@ package com.example.javarelay.data.entity;
 
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.example.javarelay.statustransition.entity.RouteInfo;
+import com.example.javarelay.orderstatus.pojo.RouteInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import com.alibaba.fastjson2.JSON;
