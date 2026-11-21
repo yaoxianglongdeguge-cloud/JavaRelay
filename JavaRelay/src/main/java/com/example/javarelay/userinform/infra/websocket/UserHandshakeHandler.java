@@ -1,4 +1,4 @@
-package com.example.javarelay.infra.websocket;
+package com.example.javarelay.userinform.infra.websocket;
 
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.web.socket.WebSocketHandler;

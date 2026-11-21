@@ -1,4 +1,4 @@
-package com.example.javarelay.infra.websocket;
+package com.example.javarelay.userinform.infra.websocket;
 
 import com.example.javarelay.rootconstants.RootConstants;
 import org.springframework.stereotype.Component;

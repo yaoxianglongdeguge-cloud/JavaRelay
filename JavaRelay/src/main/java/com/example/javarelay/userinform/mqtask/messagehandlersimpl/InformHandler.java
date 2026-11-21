@@ -5,7 +5,7 @@ import com.example.javarelay.infra.mq.MessageCell;
 import com.example.javarelay.userinform.constants.InformTypeEnum;
 import com.example.javarelay.userinform.mqtask.messagecells.InformMessage;
 import com.example.javarelay.infra.mq.MessageHandler;
-import com.example.javarelay.infra.websocket.MyWebSocketHandler;
+import com.example.javarelay.userinform.infra.websocket.MyWebSocketHandler;
 import com.example.javarelay.userinform.config.MessageTaskConfig;
 import com.example.javarelay.orderstatus.constants.Constants;
 import com.example.javarelay.orderstatus.mqtask.messagecells.OrderTimeoutMessage;
