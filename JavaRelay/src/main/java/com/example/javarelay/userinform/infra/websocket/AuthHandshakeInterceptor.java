@@ -1,4 +1,4 @@
-package com.example.javarelay.userlogin.interceptor;
+package com.example.javarelay.userinform.infra.websocket;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;

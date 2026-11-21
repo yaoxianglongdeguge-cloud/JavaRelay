@@ -3,7 +3,7 @@ package com.example.javarelay.strategysimpl.strategysimpl.SelectDriversImpl;
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.entity.DriverRedis;
 import com.example.javarelay.dto.Result;
-import com.example.javarelay.redis.rediscommon.RedisPefix;
+import com.example.javarelay.infra.redis.rediscommon.RedisPefix;
 import com.example.javarelay.orderstatus.dto.DriverDto;
 import com.example.javarelay.strategysimpl.infocollect.InfoCollector;
 import com.example.javarelay.orderstatus.constants.statusenum.DriverStatusEnum;

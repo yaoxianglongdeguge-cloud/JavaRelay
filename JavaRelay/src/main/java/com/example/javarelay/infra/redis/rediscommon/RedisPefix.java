@@ -1,4 +1,4 @@
-package com.example.javarelay.redis.rediscommon;
+package com.example.javarelay.infra.redis.rediscommon;
 
 public class RedisPefix {
 

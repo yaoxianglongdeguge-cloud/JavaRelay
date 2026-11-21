@@ -1,7 +1,7 @@
-package com.example.javarelay.redis;
+package com.example.javarelay.infra.redis;
 
 
-import com.example.javarelay.redis.rediscommon.RedisPefix;
+import com.example.javarelay.infra.redis.rediscommon.RedisPefix;
 import com.example.javarelay.orderstatus.constants.statusenum.DriverStatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;

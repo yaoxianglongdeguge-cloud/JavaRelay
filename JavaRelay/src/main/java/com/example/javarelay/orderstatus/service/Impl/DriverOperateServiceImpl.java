@@ -6,7 +6,7 @@ import com.example.javarelay.orderstatus.dto.DriverDto;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.orderstatus.exception.StatusChangeException;
-import com.example.javarelay.redis.RedisUtil;
+import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.data.mapper.DriverMapper;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.data.mapper.OrderStatusLogMapper;

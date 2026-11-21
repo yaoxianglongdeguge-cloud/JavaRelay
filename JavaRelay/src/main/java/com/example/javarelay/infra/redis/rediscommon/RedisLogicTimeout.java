@@ -1,4 +1,4 @@
-package com.example.javarelay.redis.rediscommon;
+package com.example.javarelay.infra.redis.rediscommon;
 
 import jdk.jfr.DataAmount;
 import lombok.Data;

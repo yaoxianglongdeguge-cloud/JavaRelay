@@ -2,7 +2,7 @@ package com.example.javarelay.orderstatus.backgroundtask;
 
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.data.mapper.OrderMapper;
-import com.example.javarelay.redis.RedisUtil;
+import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.orderstatus.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

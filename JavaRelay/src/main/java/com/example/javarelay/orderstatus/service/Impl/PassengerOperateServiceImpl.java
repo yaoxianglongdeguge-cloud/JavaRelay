@@ -11,7 +11,7 @@ import com.example.javarelay.dto.Result;
 import com.example.javarelay.orderstatus.pojo.RouteInfo;
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.orderstatus.exception.StatusChangeException;
-import com.example.javarelay.redis.RedisUtil;
+import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.data.mapper.OrderDetailMapper;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.userinform.service.InformService;
