@@ -12,9 +12,6 @@ import java.util.List;
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
 
-    @Select("SELECT * FROM orders WHERE passenger_id = #{passengerId}")
-    public Order selectByPassenger(Long passengerId);
-
     @Update("<script>" +
             "UPDATE orders SET status = #{toStatus}, update_time = NOW() " +
             "<if test='driverId != null'>, driver_id = #{driverId} </if>" +

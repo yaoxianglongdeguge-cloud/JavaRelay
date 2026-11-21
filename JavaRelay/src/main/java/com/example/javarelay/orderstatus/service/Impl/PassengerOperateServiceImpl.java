@@ -205,14 +205,10 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
         //筛选司机
         DriverDto driverDto = null;
 
-            Order order = orderMapper.selectByPassenger(passengerId);
+        Order order = orderMapper.selectById(orderId);
 
-
-        if(order != null){
-            String status = OrderStatusEnum.of(order.getStatus()).getDesc();
-            if(status.equals("已取消") || status.equals("已完成")){
-                return Result.fail("订单已结束");
-            }
+        if(order == null || order.getActiveFlag() == null){
+            return Result.fail("订单已结束");
         }
 
         long deadline = System.currentTimeMillis() + Constants.DISPATCH_TIMEOUT_MS;

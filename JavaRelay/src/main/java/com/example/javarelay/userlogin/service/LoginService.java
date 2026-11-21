@@ -2,18 +2,14 @@ package com.example.javarelay.userlogin.service;
 
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.userlogin.pojo.UserLogin;
-import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
-@Service
 public interface LoginService {
 
-    public Result userRegister(@RequestBody UserLogin user);
+    Result userRegister(UserLogin user);
 
-    public Result userLogin(@RequestBody UserLogin user);
+    Result userLogin(UserLogin user);
 
-    public Result userChange(@RequestBody UserLogin user,@RequestBody UserLogin userNew);
+    UserLogin validateToken(String token);
 
-    public UserLogin validateToken(String token);
-
+    String issueToken(Long userId, Integer type);
 }
