@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 public class Driver {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String name;
-    private String phone;
     // 0空闲, 1接单中
     private Integer status;
     @TableField(fill = FieldFill.INSERT)

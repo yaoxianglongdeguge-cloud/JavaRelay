@@ -1,5 +1,8 @@
-package com.example.javarelay.userinform.infra.websocket;
+package com.example.javarelay.userlogin.websocket;
 
+import com.example.javarelay.userlogin.pojo.UserLogin;
+import com.example.javarelay.userlogin.service.LoginService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -13,6 +16,9 @@ import java.util.Map;
 @Component
 public class AuthHandshakeInterceptor implements HandshakeInterceptor {
 
+    @Autowired
+    LoginService loginService;
+
     @Override
     public boolean beforeHandshake(ServerHttpRequest request,
                                    ServerHttpResponse response,
@@ -23,25 +29,18 @@ public class AuthHandshakeInterceptor implements HandshakeInterceptor {
             token = servletRequest.getServletRequest().getParameter("token");
         }
 
-        String userType = validateTokenUserType(token);
-        String userId = validateTokenUserId(token);
-        if (userId == null || userType ==null) {
+        UserLogin user = loginService.validateToken(token);
+
+        if (user == null) {
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             return false;
         }
 
-        attributes.put("userId", userId);
-        attributes.put("userType", userType);
+        attributes.put("userId", user.getUserId());
+        attributes.put("userType", user.getUserType());
         return true;
     }
 
-    private String validateTokenUserId(String token) {
-        return null;
-    }
-
-    private String validateTokenUserType(String token) {
-        return null;
-    }
 
 
     @Override

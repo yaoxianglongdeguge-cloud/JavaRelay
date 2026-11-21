@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @TableName("passengers")
 public class Passenger {
     @TableId(type = IdType.AUTO)
-    private Long id;
+    private Long passengerId;
     private String phone;
     private String password;
     private String nickname;

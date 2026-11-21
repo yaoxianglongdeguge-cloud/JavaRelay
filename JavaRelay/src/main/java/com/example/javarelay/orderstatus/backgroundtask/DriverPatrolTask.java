@@ -1,7 +1,7 @@
 package com.example.javarelay.orderstatus.backgroundtask;
 
 import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.data.entity.DriverRedis;
+import com.example.javarelay.pojo.DriverRedis;
 import com.example.javarelay.data.mapper.DriverMapper;
 import com.example.javarelay.infra.redis.rediscommon.RedisPefix;
 import com.example.javarelay.orderstatus.constants.Constants;

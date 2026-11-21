@@ -2,7 +2,7 @@ package com.example.javarelay.data.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.javarelay.data.entity.Driver;
-import com.example.javarelay.data.entity.DriverRedis;
+import com.example.javarelay.pojo.DriverRedis;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

@@ -1,4 +1,4 @@
-package com.example.javarelay.data.entity;
+package com.example.javarelay.pojo;
 
 import lombok.Data;
 

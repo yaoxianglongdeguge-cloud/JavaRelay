@@ -52,4 +52,11 @@ public class Result implements Serializable {
 
         return result;
     }
+
+    static public Result tooManyRequests(String msg) {
+        Result result = new Result();
+        result.setCode(429);
+        result.setMessage(msg);
+        return result;
+    }
 }
