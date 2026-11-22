@@ -42,7 +42,7 @@ public class RedisUtil {
                 lockScript,
                 Collections.singletonList(lockKey),
                 uuid,
-                timeout
+                String.valueOf(timeout)
         );
 
 

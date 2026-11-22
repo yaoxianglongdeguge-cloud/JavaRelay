@@ -24,8 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DriverPatrolTask{
 
 
-    private static final long LOCK_TTL = 10L;
-
     private static AtomicInteger nextScan = new AtomicInteger(0);
 
     @Autowired
@@ -36,11 +34,11 @@ public class DriverPatrolTask{
     RedisUtil redisUtil;
 
     @Scheduled(fixedDelay = Constants.DRIVER_PATROL_INTERVAL)
-    private void scanDriver(){
+    private void scanDriver() {
 
         String token = UUID.randomUUID().toString();
 
-        if (!redisUtil.tryLock(RedisPefix.DRIVER_PATROL_LOCK_KEY, token, LOCK_TTL)) {
+        if (!redisUtil.tryLock(RedisPefix.DRIVER_PATROL_LOCK_KEY, token, RedisPefix.DRIVER_PATROL_LEADER_TTL)) {
             return;
         }
 
@@ -82,7 +80,6 @@ public class DriverPatrolTask{
             }
 
         } finally {
-            redisUtil.tryunLock(RedisPefix.DRIVER_PATROL_LOCK_KEY, token);
         }
     }
 }

@@ -16,8 +16,6 @@ import java.util.UUID;
 @Slf4j
 public class StuckOrderTask {
 
-    private static final long LOCK_TTL = 120L;
-
     @Autowired
     OrderMapper orderMapper;
     @Autowired
@@ -30,7 +28,7 @@ public class StuckOrderTask {
 
         String token = UUID.randomUUID().toString();
 
-        if (!redisUtil.tryLock(RedisPefix.STUCK_ORDER_LOCK_KEY, token, LOCK_TTL)) {
+        if (!redisUtil.tryLock(RedisPefix.STUCK_ORDER_LOCK_KEY, token,RedisPefix.STUCK_ORDERLEADER_TTL)) {
             log.debug("stuck-order 由其他实例执行中，跳过");
             return;
         }
@@ -45,7 +43,6 @@ public class StuckOrderTask {
                 }
             }
         } finally {
-            redisUtil.tryunLock(RedisPefix.STUCK_ORDER_LOCK_KEY, token);
         }
     }
 }
