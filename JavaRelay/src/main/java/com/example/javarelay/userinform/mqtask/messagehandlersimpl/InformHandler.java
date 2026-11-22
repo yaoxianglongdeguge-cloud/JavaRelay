@@ -50,6 +50,7 @@ public class InformHandler implements MessageHandler {
         return true;
     }
 
+    //承担通知和发定时接单任务的功能
     public void handle(MessageCell messageCell){
 
         InformMessage informMessage = (InformMessage) messageCell;

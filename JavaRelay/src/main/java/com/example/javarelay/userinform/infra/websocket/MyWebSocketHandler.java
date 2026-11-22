@@ -1,6 +1,7 @@
 package com.example.javarelay.userinform.infra.websocket;
 
 import com.example.javarelay.rootconstants.RootConstants;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -17,6 +18,9 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 
     private static final Map<Long, WebSocketSession> ONLINE_DRIVER = new ConcurrentHashMap<>();
     private static final Map<Long, WebSocketSession> ONLINE_PASSENGER = new ConcurrentHashMap<>();
+
+    @Autowired
+    WsPublisher wsPublisher;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -65,27 +69,33 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    public void sendToUser(Integer userType,Long userId, String msg) {
+    public void sendToUser(Integer userType, Long userId, String msg) {
+        wsPublisher.push(userType, userId, msg);
+    }
 
-        if(userType.equals(RootConstants.DRIVER)){
-            WebSocketSession session = ONLINE_DRIVER.get(userId);
-            if (session != null && session.isOpen()) {
-                try {
-                    session.sendMessage(new TextMessage(msg));
-                } catch (Exception e) {
-                    ONLINE_DRIVER.remove(userId);
-                }
-            }
-        }else if(userType.equals(RootConstants.PASSENGER)){
-            WebSocketSession session = ONLINE_PASSENGER.get(userId);
-            if (session != null && session.isOpen()) {
-                try {
-                    session.sendMessage(new TextMessage(msg));
-                } catch (Exception e) {
-                    ONLINE_PASSENGER.remove(userId);
-                }
-            }
+    public void sendLocal(Integer userType, Long userId, String msg) {
+
+        if (userType == null || userId == null) {
+            return;
         }
 
+        if(userType.equals(RootConstants.DRIVER)){
+            sendAndClean(ONLINE_DRIVER, userId, msg);
+        }else if(userType.equals(RootConstants.PASSENGER)){
+            sendAndClean(ONLINE_PASSENGER, userId, msg);
+        }
+    }
+
+    private void sendAndClean(Map<Long, WebSocketSession> websocketPool, Long userId, String msg) {
+
+        WebSocketSession session = websocketPool.get(userId);
+        if (session == null || !session.isOpen()) {
+            return;
+        }
+        try {
+            session.sendMessage(new TextMessage(msg));
+        } catch (Exception e) {
+            websocketPool.remove(userId);
+        }
     }
 }

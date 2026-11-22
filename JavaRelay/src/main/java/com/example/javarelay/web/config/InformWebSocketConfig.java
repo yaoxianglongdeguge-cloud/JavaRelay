@@ -2,7 +2,6 @@ package com.example.javarelay.web.config;
 
 import com.example.javarelay.userinform.infra.websocket.MyWebSocketHandler;
 import com.example.javarelay.userinform.infra.websocket.UserHandshakeHandler;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
