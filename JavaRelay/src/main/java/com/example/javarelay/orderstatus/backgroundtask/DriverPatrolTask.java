@@ -3,6 +3,7 @@ package com.example.javarelay.orderstatus.backgroundtask;
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.pojo.DriverRedis;
 import com.example.javarelay.data.mapper.DriverMapper;
+import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.infra.redis.rediscommon.RedisPefix;
 import com.example.javarelay.orderstatus.constants.Constants;
 import lombok.Data;
@@ -13,6 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -21,53 +23,66 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class DriverPatrolTask{
 
+
+    private static final long LOCK_TTL = 10L;
+
     private static AtomicInteger nextScan = new AtomicInteger(0);
 
     @Autowired
     DriverMapper driverMapper;
     @Autowired
     StringRedisTemplate stringRedisTemplate;
-
-
+    @Autowired
+    RedisUtil redisUtil;
 
     @Scheduled(fixedDelay = Constants.DRIVER_PATROL_INTERVAL)
     private void scanDriver(){
 
-        List<DriverRedis> needInsert = null;
-        try {
-            needInsert = driverMapper.getDriverRedis(nextScan.get(), Constants.SERVE_DRIVERS_SCAN);
-        } catch (Exception e) {
-            log.info("司机扫描出错");
-        }
+        String token = UUID.randomUUID().toString();
 
-        if(needInsert == null){
-            nextScan.set(0);
+        if (!redisUtil.tryLock(RedisPefix.DRIVER_PATROL_LOCK_KEY, token, LOCK_TTL)) {
             return;
         }
 
-        if (needInsert.size() < Constants.SERVE_DRIVERS_SCAN) {
-            nextScan.set(0);
-        } else {
-            nextScan.addAndGet(needInsert.size());
-        }
+        try {
 
-        for (DriverRedis s : needInsert) {
-            String jsonDriver = stringRedisTemplate.opsForValue().get(RedisPefix.DRIVER_INFO + s.getId());
-            DriverRedis driver = JSON.parseObject(jsonDriver, DriverRedis.class);
-
-            if (driver == null) {
-                int a = 0;
-            } else if (!driver.equals(s)) {
-                stringRedisTemplate.delete(RedisPefix.DRIVER_INFO + s.getId());
-
-            } else {
-                continue;
+            List<DriverRedis> needInsert = null;
+            try {
+                needInsert = driverMapper.getDriverRedis(nextScan.get(), Constants.SERVE_DRIVERS_SCAN);
+            } catch (Exception e) {
+                log.info("司机扫描出错");
             }
 
-            stringRedisTemplate.opsForValue().set(RedisPefix.DRIVER_INFO + s.getId(), JSON.toJSONString(s));
+            if(needInsert == null){
+                nextScan.set(0);
+                return;
+            }
 
+            if (needInsert.size() < Constants.SERVE_DRIVERS_SCAN) {
+                nextScan.set(0);
+            } else {
+                nextScan.addAndGet(needInsert.size());
+            }
+
+            for (DriverRedis s : needInsert) {
+                String jsonDriver = stringRedisTemplate.opsForValue().get(RedisPefix.DRIVER_INFO + s.getId());
+                DriverRedis driver = JSON.parseObject(jsonDriver, DriverRedis.class);
+
+                if (driver == null) {
+                    int a = 0;
+                } else if (!driver.equals(s)) {
+                    stringRedisTemplate.delete(RedisPefix.DRIVER_INFO + s.getId());
+
+                } else {
+                    continue;
+                }
+
+                stringRedisTemplate.opsForValue().set(RedisPefix.DRIVER_INFO + s.getId(), JSON.toJSONString(s));
+
+            }
+
+        } finally {
+            redisUtil.tryunLock(RedisPefix.DRIVER_PATROL_LOCK_KEY, token);
         }
     }
-
-
 }

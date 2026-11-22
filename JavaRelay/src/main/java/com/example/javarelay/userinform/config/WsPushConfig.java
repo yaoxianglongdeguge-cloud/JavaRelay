@@ -1,7 +1,6 @@
 package com.example.javarelay.userinform.infra.websocket;
 
 import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.userinform.constants.RedisPrefix;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
