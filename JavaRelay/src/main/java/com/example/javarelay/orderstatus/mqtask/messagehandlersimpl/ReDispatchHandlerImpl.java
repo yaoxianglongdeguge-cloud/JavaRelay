@@ -1,59 +1,35 @@
 package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
-import com.example.javarelay.orderstatus.config.MQConfig;
-import com.example.javarelay.infra.mq.MessageCell;
+import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.orderstatus.mqtask.messagecells.ReDispatchMessage;
-import com.example.javarelay.infra.mq.MessageHandler;
 import com.example.javarelay.orderstatus.service.PassengerOperateService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
-public class ReDispatchHandlerImpl implements MessageHandler {
-    String topic = MQConfig.MESSAGE_REDISPATCH_TOPIC;
+@RocketMQMessageListener(topic = "jr_dispatch", consumerGroup = "jr_dispatch_group")
+public class ReDispatchHandlerImpl implements RocketMQListener<String> {
 
     @Autowired
     PassengerOperateService passengerOperateService;
 
-    ThreadPoolExecutor computeMoneyExecutor = new ThreadPoolExecutor(
-            4, 8, 60L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2000),
-            r -> new Thread(r, "reDisPatch-worker"),
-            new ThreadPoolExecutor.AbortPolicy()
-    );
-
     @Override
-    public String getTopic() {
-        return this.topic;
-    }
+    public void onMessage(String body) {
 
-    @Override
-    public Boolean handler(MessageCell messageCell) {
+        ReDispatchMessage cell = JSON.parseObject(body, ReDispatchMessage.class);
 
-        try{
-
-            computeMoneyExecutor.execute(()->handle(messageCell));
-
-        }catch(RejectedExecutionException e){
-            log.info("重派单线程池已满");
+        if (cell == null || cell.getMsg() == null) {
+            log.warn("重派单消息格式错误: {}", body);
+            return;
         }
 
-        return true;
+        Long orderId = cell.getMsg().getOrderId();
+        Long passengerId = cell.getMsg().getPassengerId();
 
-    }
-
-    public void handle(MessageCell messageCell){
-        ReDispatchMessage reDispatchMessage = (ReDispatchMessage) messageCell;
-        ReDispatchMessage.msg msg = (ReDispatchMessage.msg) reDispatchMessage.getMsg();
-        Long orderId = msg.getOrderId();
-        Long passengerId = msg.getPassengerId();
-
-        passengerOperateService.ReDispatchOrder(orderId,passengerId);
+        passengerOperateService.ReDispatchOrder(orderId, passengerId);
     }
 }

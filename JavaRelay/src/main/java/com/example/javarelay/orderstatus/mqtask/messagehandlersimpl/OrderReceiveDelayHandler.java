@@ -1,31 +1,25 @@
 package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
+import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.data.mapper.OrderMapper;
-import com.example.javarelay.infra.mq.MessageCell;
-import com.example.javarelay.infra.mq.MessageHandler;
-import com.example.javarelay.orderstatus.config.MQConfig;
-import com.example.javarelay.orderstatus.exception.StatusChangeException;
-import com.example.javarelay.orderstatus.service.OrderService;
-import com.example.javarelay.orderstatus.service.PassengerOperateService;
 import com.example.javarelay.orderstatus.constants.statusenum.DriverStatusEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
+import com.example.javarelay.orderstatus.exception.StatusChangeException;
 import com.example.javarelay.orderstatus.mqtask.messagecells.OrderTimeoutMessage;
+import com.example.javarelay.orderstatus.service.OrderService;
+import com.example.javarelay.orderstatus.service.PassengerOperateService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 @Slf4j
 @Component
-public class OrderReceiveDelayHandler implements MessageHandler {
-
-    String topic = MQConfig.ORDER_TIMEOUT_TOPIC;
+@RocketMQMessageListener(topic = "jr_delay_receive", consumerGroup = "jr_delay_receive_group")
+public class OrderReceiveDelayHandler implements RocketMQListener<String> {
 
     @Autowired
     OrderMapper orderMapper;
@@ -37,79 +31,55 @@ public class OrderReceiveDelayHandler implements MessageHandler {
     PassengerOperateService passengerOperateService;
 
     @Override
-    public String getTopic() {
-        return this.topic;
-    }
+    public void onMessage(String body) {
 
-    @Override
-    public Boolean handler(MessageCell messageCell) {
+        OrderTimeoutMessage cell = JSON.parseObject(body, OrderTimeoutMessage.class);
 
-        try{
-
-            computeMoneyExecutor.execute(()->handle(messageCell));
-
-        }catch(RejectedExecutionException e){
-            log.info("金额计算线程池已满");
+        if (cell == null || cell.getMsg() == null) {
+            log.warn("接单超时消息格式错误: {}", body);
+            return;
         }
 
-        return true;
-    }
-
-    ThreadPoolExecutor computeMoneyExecutor = new ThreadPoolExecutor(
-            4, 8, 60L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2000),
-            r -> new Thread(r, "compute-money-worker"),
-            new ThreadPoolExecutor.AbortPolicy()
-    );
-
-    private void handle(MessageCell messageCell){
-        OrderTimeoutMessage orderTimeoutMessage = (OrderTimeoutMessage) messageCell;
-        OrderTimeoutMessage.msg msg = (OrderTimeoutMessage.msg) orderTimeoutMessage.getMsg();
-        Long orderId = msg.getOrderId();
-        handleTimeout(orderId);
-
+        handleTimeout(cell.getMsg().getOrderId());
     }
 
     private void handleTimeout(Long orderId) {
 
-
-        Order order = null;
-        try{
+        Order order;
+        try {
             order = orderMapper.selectById(orderId);
-            if (order == null) return;
-        }catch (Exception e){
-            log.info("系统问题");
+        } catch (Exception e) {
+            log.error("查询订单失败 orderId={}", orderId, e);
+            return;
+        }
+
+        if (order == null) {
+            return;
         }
 
         Integer status = order.getStatus();
         Long passengerId = order.getPassengerId();
         Long driverId = order.getDriverId();
 
-        if(status == OrderStatusEnum.DISPATCHED.getCode()) {
-
-            try {
-                orderService.changeOrderStatus(orderId, passengerId,
-                        OrderStatusEnum.DISPATCHED.getCode(),
-                        OrderStatusEnum.WAITING_DISPATCH.getCode(),
-                        OrderOperatorEnum.SYSTEM.getCode(),
-
-                        driverId,
-                        DriverStatusEnum.RECEIVING.getCode(),
-                        DriverStatusEnum.LEISURE.getCode());
-
-                passengerOperateService.ReDispatchOrder(orderId,passengerId);
-                log.info("已重派单");
-
-            } catch (StatusChangeException e) {
-
-                log.info("订单已被取消或接单");
-            } catch (Exception e){
-                log.info("系统出问题");
-            }
-
+        if (status == null || status != OrderStatusEnum.DISPATCHED.getCode()) {
+            return;
         }
 
+        try {
+            orderService.changeOrderStatus(orderId, passengerId,
+                    OrderStatusEnum.DISPATCHED.getCode(),
+                    OrderStatusEnum.WAITING_DISPATCH.getCode(),
+                    OrderOperatorEnum.SYSTEM.getCode(),
 
+                    driverId,
+                    DriverStatusEnum.RECEIVING.getCode(),
+                    DriverStatusEnum.LEISURE.getCode());
 
+            passengerOperateService.ReDispatchOrder(orderId, passengerId);
+            log.info("订单 {} 接单超时，已重派", orderId);
+
+        } catch (StatusChangeException e) {
+            log.info("订单 {} 已被取消或接单，跳过超时处理", orderId);
+        }
     }
 }

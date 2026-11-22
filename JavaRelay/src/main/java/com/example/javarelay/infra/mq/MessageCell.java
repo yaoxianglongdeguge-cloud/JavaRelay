@@ -7,25 +7,10 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
 @Data
-public class MessageCell implements Delayed {
+public class MessageCell<T> {
 
     private String topic;
-    private long executeTime; // 任务到期的时间戳（毫秒）
-    private Object msg;
-
-
-    @Override
-    public long getDelay(TimeUnit unit) {
-        long diff = executeTime - System.currentTimeMillis();
-        return unit.convert(diff, TimeUnit.MILLISECONDS);
-    }
-    @Override
-    public final int compareTo(@Nonnull Delayed other) {
-        if (other == this) {
-            return 0;
-        }
-        return Long.compare(this.getDelay(TimeUnit.MILLISECONDS),
-                other.getDelay(TimeUnit.MILLISECONDS));
-    }
+    private long executeTime;
+    private T msg;
 
 }

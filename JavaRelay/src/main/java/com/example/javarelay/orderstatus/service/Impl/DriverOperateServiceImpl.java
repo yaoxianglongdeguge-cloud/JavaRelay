@@ -11,7 +11,6 @@ import com.example.javarelay.data.mapper.DriverMapper;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.data.mapper.OrderStatusLogMapper;
 import com.example.javarelay.orderstatus.mqtask.messagecells.ReDispatchMessage;
-import com.example.javarelay.infra.mq.MessageDispatcher;
 import com.example.javarelay.orderstatus.service.DriverOperateService;
 import com.example.javarelay.userinform.service.InformService;
 import com.example.javarelay.orderstatus.service.OrderService;
@@ -20,6 +19,7 @@ import com.example.javarelay.orderstatus.constants.statusenum.DriverStatusEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -31,12 +31,6 @@ public class DriverOperateServiceImpl implements DriverOperateService {
     OrderMapper orderMapper;
 
     @Autowired
-    DriverMapper driverMapper;
-
-    @Autowired
-    OrderStatusLogMapper orderStatusLogMapper;
-
-    @Autowired
     OrderService orderService;
 
     @Autowired
@@ -46,7 +40,7 @@ public class DriverOperateServiceImpl implements DriverOperateService {
     InformService informService;
 
     @Autowired
-    MessageDispatcher messageDispatcher;
+    private ApplicationEventPublisher eventPublisher;
 
     @Autowired
     RedisUtil redisUtil;
@@ -277,9 +271,7 @@ public class DriverOperateServiceImpl implements DriverOperateService {
 
         ReDispatchMessage reDispatchMessage = new ReDispatchMessage(orderId,passengerId);
 
-        if(!messageDispatcher.addTask(reDispatchMessage)){
-            return Result.fail("信息投递失败");
-        }
+        eventPublisher.publishEvent(reDispatchMessage);
 
         informService.informPassenger(orderId,driverId,passengerId,InformTypeEnum.STATUS_CONFIRM.getCode(),"已拒单");
 

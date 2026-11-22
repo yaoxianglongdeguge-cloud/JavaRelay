@@ -125,6 +125,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- 替换掉现在的 rocketmq-client -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot-starter</artifactId>
+            <version>2.3.3</version>
+        </dependency>
+
 
     </dependencies>
 

@@ -1,14 +1,14 @@
 package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
-import com.example.javarelay.orderstatus.config.MQConfig;
-import com.example.javarelay.dto.Result;
+import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.mapper.OrderDetailMapper;
-import com.example.javarelay.infra.mq.MessageCell;
+import com.example.javarelay.dto.Result;
 import com.example.javarelay.orderstatus.mqtask.messagecells.ComputeMoneyMessage;
-import com.example.javarelay.infra.mq.MessageHandler;
 import com.example.javarelay.strategysapi.ComputeMoneyStrategy;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -16,88 +16,70 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
-public class ComputeMoneyHandlerImpl implements MessageHandler {
-
-    public String topic = MQConfig.MESSAGE_COMPUTEMONEY_TOPIC;
+@RocketMQMessageListener(topic = "jr_computemoney", consumerGroup = "jr_computemoney_group")
+public class ComputeMoneyHandlerImpl implements RocketMQListener<String> {
 
     @Autowired
     List<ComputeMoneyStrategy> computeMoneyStrategyList;
+
     Map<String, ComputeMoneyStrategy> computeMoneyStrategys = new HashMap<>();
 
     @Autowired
     OrderDetailMapper orderDetailMapper;
 
-    ThreadPoolExecutor computeMoneyExecutor = new ThreadPoolExecutor(
-            4, 8, 60L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2000),
-            r -> new Thread(r, "compute-money-worker"),
-            new ThreadPoolExecutor.AbortPolicy()
-    );
-
     @PostConstruct
-    public void init(){
-        for(ComputeMoneyStrategy s:computeMoneyStrategyList){
-            computeMoneyStrategys.put(s.getType(),s);
+    public void init() {
+        for (ComputeMoneyStrategy s : computeMoneyStrategyList) {
+            computeMoneyStrategys.put(s.getType(), s);
         }
     }
 
     @Override
-    public String getTopic() {
-        return topic;
-    }
+    public void onMessage(String body) {
 
-    @Override
-    public Boolean handler(MessageCell messageCell) {
+        ComputeMoneyMessage cell = JSON.parseObject(body, ComputeMoneyMessage.class);
 
-        try{
-
-            computeMoneyExecutor.execute(()->handle(messageCell));
-
-        }catch(RejectedExecutionException e){
-            log.info("金额计算线程池已满");
+        if (cell == null || cell.getMsg() == null) {
+            log.warn("金额计算消息格式错误: {}", body);
+            return;
         }
 
-        return true;
-    }
+        Long orderId = cell.getMsg().getOrderId();
 
-    public void handle(MessageCell messageCell) {
-
-        ComputeMoneyMessage computeMoneyMessage = (ComputeMoneyMessage) messageCell;
-        ComputeMoneyMessage.msg msg = (ComputeMoneyMessage.msg) computeMoneyMessage.getMsg();
-        Long orderId = msg.getOrderId();
-        String type = null;
+        String type;
         try {
             type = orderDetailMapper.getActualPriceType(orderId);
         } catch (Exception e) {
-            log.info("查找金额计算策略失败");
+            log.error("查询计费类型失败 orderId={}", orderId, e);
+            return;
         }
 
         if (type == null) {
-            log.info("查找金额计算策略失败");
+            log.warn("订单 {} 没有计费类型，跳过金额计算", orderId);
+            return;
         }
 
-        ComputeMoneyStrategy computeMoneyStrategy = computeMoneyStrategys.get(type);
-        Result result = computeMoneyStrategy.ComputeStrategy(orderId);
-        BigDecimal money = (BigDecimal) result.getData();
+        ComputeMoneyStrategy strategy = computeMoneyStrategys.get(type);
+        if (strategy == null) {
+            log.warn("订单 {} 找不到计费策略 type={}", orderId, type);
+            return;
+        }
+
+        Result result = strategy.ComputeStrategy(orderId);
+        BigDecimal money = result == null ? null : (BigDecimal) result.getData();
 
         if (money == null) {
-            log.info("金额计算失败");
+            log.warn("订单 {} 金额计算返回空", orderId);
             return;
         }
 
         try {
             orderDetailMapper.updateActualPrice(orderId, money);
         } catch (Exception e) {
-            log.info("金额插入失败");
+            log.error("金额写入失败 orderId={}", orderId, e);
         }
-
-
     }
 }

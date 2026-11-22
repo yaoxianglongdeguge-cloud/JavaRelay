@@ -3,7 +3,6 @@ package com.example.javarelay.orderstatus.service.Impl;
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.entity.OrderDetail;
 import com.example.javarelay.userinform.constants.InformTypeEnum;
-import com.example.javarelay.infra.mq.MessageDispatcher;
 import com.example.javarelay.orderstatus.constants.Constants;
 import com.example.javarelay.orderstatus.dto.DriverDto;
 import com.example.javarelay.orderstatus.dto.PassengerDto;
@@ -25,6 +24,7 @@ import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -53,6 +53,9 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
     @Autowired
     RedisUtil redisUtil;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
 
     @Override
@@ -103,14 +106,8 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             return Result.success("分配成功,司机正在赶来");
         }
 
-        MessageDispatcher dispatcher = ctx.getBean(MessageDispatcher.class);   // 调用时才解析
-        boolean queued = dispatcher.addTask(new ReDispatchMessage(orderNew.getId(), passengerId));
+        eventPublisher.publishEvent(new ReDispatchMessage(orderNew.getId(), passengerId));
 
-        if (!queued) {
-            orderService.cancelAfterDispatchFail(orderNew.getId(), passengerId,
-                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "派单队列已满");
-            return Result.fail("当前订单过多，请稍后重试");
-        }
         return Result.success("已下单，正在为您寻找车辆", orderNew);
     }
 
@@ -420,13 +417,9 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             }
 
             ReDispatchMessage retry = new ReDispatchMessage(orderId, passengerId);
-            retry.setExecuteTime(System.currentTimeMillis() + 500);   // 500ms 后重试
-            MessageDispatcher dispatcher = ctx.getBean(MessageDispatcher.class);   // 调用时才解析
+            retry.setExecuteTime(System.currentTimeMillis() + 500);   // 500ms 后重试// 调用时才解析
 
-            if (!dispatcher.addTask(retry)) {
-                orderService.cancelAfterDispatchFail(orderId, passengerId,
-                        OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "派单队列已满");
-            }
+            eventPublisher.publishEvent(retry);
 
             return Result.fail("匹配失败");
 

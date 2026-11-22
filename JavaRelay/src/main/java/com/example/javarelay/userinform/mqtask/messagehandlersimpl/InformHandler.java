@@ -1,81 +1,64 @@
 package com.example.javarelay.userinform.mqtask.messagehandlersimpl;
 
+import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.globalconfig.RootInformConfig;
-import com.example.javarelay.infra.mq.MessageCell;
-import com.example.javarelay.userinform.constants.InformTypeEnum;
-import com.example.javarelay.userinform.mqtask.messagecells.InformMessage;
-import com.example.javarelay.infra.mq.MessageHandler;
-import com.example.javarelay.userinform.infra.websocket.MyWebSocketHandler;
-import com.example.javarelay.userinform.config.MessageTaskConfig;
 import com.example.javarelay.orderstatus.constants.Constants;
 import com.example.javarelay.orderstatus.mqtask.messagecells.OrderTimeoutMessage;
+import com.example.javarelay.userinform.constants.InformTypeEnum;
+import com.example.javarelay.userinform.infra.websocket.MyWebSocketHandler;
+import com.example.javarelay.userinform.mqtask.messagecells.InformMessage;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
+@Slf4j
 @Component
-public class InformHandler implements MessageHandler {
-
+@RocketMQMessageListener(topic = "jr_inform", consumerGroup = "jr_inform_group")
+public class InformHandler implements RocketMQListener<String> {
 
     @Autowired
     MyWebSocketHandler webSocketHandler;
 
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
-
-    public String topic = MessageTaskConfig.MESSAGE_INFORM_TOPIC;
-
-    ThreadPoolExecutor Executor = new ThreadPoolExecutor(
-            1, 4, 60L, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(200),
-            r -> new Thread(r, "inform-worker"),
-            new ThreadPoolExecutor.DiscardPolicy()
-    );
+    ApplicationEventPublisher eventPublisher;
 
     @Override
-    public String getTopic() {
-        return topic;
+    public void onMessage(String body) {
+
+        InformMessage cell = JSON.parseObject(body, InformMessage.class);
+
+        if (cell == null || cell.getMsg() == null) {
+            log.warn("通知消息格式错误: {}", body);
+            return;
+        }
+
+        handle(cell);
     }
 
+    public void handle(InformMessage informMessage) {
 
-    @Override
-    public Boolean handler(MessageCell messageCell) {
-
-        Executor.execute(()->handle(messageCell));
-
-        return true;
-    }
-
-    //承担通知和发定时接单任务的功能
-    public void handle(MessageCell messageCell){
-
-        InformMessage informMessage = (InformMessage) messageCell;
-        InformMessage.msg msg = (InformMessage.msg) informMessage.getMsg();
+        InformMessage.msg msg = informMessage.getMsg();
         Integer toWho = msg.getToWho();
         Integer type = msg.getMsgType();
         String message = msg.getMessage();
         Long orderId = msg.getOrderId();
 
-        if(type == InformTypeEnum.STATUS_CONFIRM.getCode()){
+        if (type == InformTypeEnum.STATUS_CONFIRM.getCode()) {
 
-            //通知对方来确认状态
-            informStatusConfirm(toWho,msg.getToId(),message);
+            informStatusConfirm(toWho, msg.getToId(), message);
 
-            if(toWho.equals(RootInformConfig.TO_DRIVER) && message.equals("已派单")){
-                //如果是通知司机来接单，那还要维护超时任务，防止司机长时间不接单
-                OrderTimeoutMessage messageCell1 = new OrderTimeoutMessage(orderId,Constants.ORDER_TIMEOUT_TIME);
-
-                eventPublisher.publishEvent(messageCell1);
+            if (toWho.equals(RootInformConfig.TO_DRIVER) && "已派单".equals(message)) {
+                OrderTimeoutMessage timeout =
+                        new OrderTimeoutMessage(orderId, Constants.ORDER_TIMEOUT_TIME);
+                eventPublisher.publishEvent(timeout);
             }
-
         }
     }
 
-    public void informStatusConfirm(Integer toWho,Long toId,String message){
-        webSocketHandler.sendToUser(toWho,toId,message);
+    public void informStatusConfirm(Integer toWho, Long toId, String message) {
+        webSocketHandler.sendToUser(toWho, toId, message);
     }
 }
