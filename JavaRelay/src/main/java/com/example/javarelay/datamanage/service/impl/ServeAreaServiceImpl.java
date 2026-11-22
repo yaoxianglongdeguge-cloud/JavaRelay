@@ -1,4 +1,4 @@
-package com.example.javarelay.orderstatus.service.Impl;
+package com.example.javarelay.datamanage.service.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.entity.ServiceArea;
@@ -8,7 +8,7 @@ import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.infra.redis.rediscommon.RedisLogicTimeout;
 import com.example.javarelay.infra.redis.rediscommon.RedisPefix;
 import com.example.javarelay.orderstatus.constants.Constants;
-import com.example.javarelay.orderstatus.service.ServeAreaService;
+import com.example.javarelay.datamanage.service.ServeAreaService;
 import com.alibaba.fastjson2.TypeReference;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;

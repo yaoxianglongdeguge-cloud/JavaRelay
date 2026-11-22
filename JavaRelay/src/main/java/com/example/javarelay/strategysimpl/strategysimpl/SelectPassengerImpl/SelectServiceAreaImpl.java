@@ -4,7 +4,7 @@ import com.example.javarelay.data.entity.ServiceArea;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.infra.GeoUtil;
 import com.example.javarelay.strategysimpl.infocollect.InfoCollector;
-import com.example.javarelay.orderstatus.service.ServeAreaService;
+import com.example.javarelay.datamanage.service.ServeAreaService;
 import com.example.javarelay.strategysapi.SelectPassengerStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;

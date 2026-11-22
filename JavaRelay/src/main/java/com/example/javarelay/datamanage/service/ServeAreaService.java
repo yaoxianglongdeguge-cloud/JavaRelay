@@ -1,4 +1,4 @@
-package com.example.javarelay.orderstatus.service;
+package com.example.javarelay.datamanage.service;
 
 import com.example.javarelay.data.entity.ServiceArea;
 import com.example.javarelay.dto.Result;
