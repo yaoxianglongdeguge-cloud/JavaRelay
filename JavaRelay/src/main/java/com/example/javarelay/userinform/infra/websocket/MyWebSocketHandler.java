@@ -8,6 +8,8 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 
 import java.security.Principal;
 import java.util.Map;
@@ -38,6 +40,24 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
                         new ConcurrentWebSocketSessionDecorator(session, 10_000, 512 * 1024));
             }
         }
+    }
+
+    @EventListener(ContextClosedEvent.class)
+    public void closeAll() {
+        closeAllSessions(ONLINE_DRIVER);
+        closeAllSessions(ONLINE_PASSENGER);
+    }
+
+    private void closeAllSessions(Map<Long, WebSocketSession> pool) {
+        for (WebSocketSession session : pool.values()) {
+            try {
+                if (session.isOpen()) {
+                    session.close(CloseStatus.GOING_AWAY);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        pool.clear();
     }
 
     private String[] getUserInfo(String user){

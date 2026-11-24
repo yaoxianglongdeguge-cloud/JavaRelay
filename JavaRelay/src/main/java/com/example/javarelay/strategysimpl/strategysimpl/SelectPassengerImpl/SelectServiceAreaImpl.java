@@ -43,10 +43,12 @@ public class SelectServiceAreaImpl implements SelectPassengerStrategy {
         String city = infoCollector.getStartAddress();
 
 
-        ServiceArea serviceArea = serveAreaService.getServiceAreaRedis(city);
-        if(serviceArea == null){
+        Result serviceAreaResult = serveAreaService.getServeArea(city);
+        if(serviceAreaResult == null || serviceAreaResult.getCode() != 200){
             return Result.fail("不在服务范围内");
         }
+
+        ServiceArea serviceArea = (ServiceArea) serviceAreaResult.getData();
 
         double distance = GeoUtil.getDistance(
                 startLng.doubleValue(), startLat.doubleValue(),

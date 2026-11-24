@@ -9,7 +9,4 @@ public interface ServeAreaService {
 
     public Result getServeArea(String city);
 
-    public boolean setServiceAreaRedis(String city,Object data,long seconds);
-
-    public ServiceArea getServiceAreaRedis(String city);
 }
