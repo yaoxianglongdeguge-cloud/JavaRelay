@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@RocketMQMessageListener(topic = "jr_dispatch", consumerGroup = "jr_dispatch_group")
+@RocketMQMessageListener(topic = "jr_redispatch", consumerGroup = "jr_redispatch_group")
 public class ReDispatchHandlerImpl implements RocketMQListener<String> {
 
     @Autowired

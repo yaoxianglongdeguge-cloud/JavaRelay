@@ -18,7 +18,7 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
             "  <if test='routeSnapshot != null'> route_snapshot = #{routeSnapshot}, </if>" +
             "  update_time = NOW() " +
             "</set> " +
-            "WHERE order_id = #{orderId} AND estimated_price IS NULL" +
+            "WHERE order_id = #{orderId} AND estimated_price IS NULL AND driver_id IS NULL" +
             "</script>")
     public int initOrderDetail(
             @Param("orderId") Long orderId,

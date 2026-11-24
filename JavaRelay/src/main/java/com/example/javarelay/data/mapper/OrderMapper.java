@@ -16,6 +16,7 @@ public interface OrderMapper extends BaseMapper<Order> {
             "UPDATE orders SET status = #{toStatus}, update_time = NOW() " +
             "<if test='driverId != null'>, driver_id = #{driverId} </if>" +
             "WHERE id = #{orderId} AND status = #{fromStatus}" +
+            "<if test='fromStatus == 0'> AND driver_id IS NULL </if>" +
             "</script>")
     public int updateStatusWithOptimisticLock(@Param("orderId") Long orderId,
                                        @Param("fromStatus") Integer fromStatus,
@@ -59,13 +60,5 @@ public interface OrderMapper extends BaseMapper<Order> {
             "AND update_time < DATE_SUB(NOW(), INTERVAL #{minutes} MINUTE) LIMIT 100")
     List<Order> selectStuckOrders(@Param("minutes") int minutes);
 
-    //把没有超过一定时间但是没有被接单的订单拿出来，进行派单或者超时等待接单
-    @Select("SELECT * FROM orders " +
-            "WHERE active_flag = 1 AND status IN (0, 1) " +
-            "AND update_time > DATE_SUB(NOW(), INTERVAL #{hours} HOUR) " +
-            "ORDER BY id LIMIT #{offset}, #{limit}")
-    List<Order> selectRecoverable(@Param("offset") int offset,
-                                  @Param("limit") int limit,
-                                  @Param("hours") int hours);
 
 }
