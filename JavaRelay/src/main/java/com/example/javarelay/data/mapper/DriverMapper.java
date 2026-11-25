@@ -19,6 +19,7 @@ public interface DriverMapper extends BaseMapper<Driver> {
                                        @Param("oldStatus") Integer oldStatus,
                                        @Param("newStatus") Integer newStatus);
 
+
     @Select("select id ,status from drivers where id >= #{nextScan} limit #{num}")
     public List<DriverRedis> getDriverRedis(@Param("nextScan") int nextScan,@Param("num") int num);
 }

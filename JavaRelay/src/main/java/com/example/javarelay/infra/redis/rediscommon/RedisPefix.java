@@ -5,6 +5,11 @@ public class RedisPefix {
     public static final String SERVICEAREA_PREFIX = "service:area:info:";
     public static final String SERVICEAREA_LOCK_PREFIX = "lock:area:info:";
     public static final String DRIVER_INFO = "service:driver:info:";
+    public static final String DRIVER_ATTR_PREFIX = "service:driver:attr:";
+    public static final String DRIVER_GEO = "service:driver:geo";
+    public static final String DRIVER_LOC_ALIVE_PREFIX = "driver:loc:alive:";
+    public static final String DRIVER_ATTR_LOCK_KEY = "lock:task:driver-attr";
+    public static final long DRIVER_ATTR_LEADER_TTL = 40L;
     public static final String STUCK_ORDER_LOCK_KEY = "lock:task:stuck-order";
     public static final long STUCK_ORDERLEADER_TTL = 40L;
     public static final String DRIVER_PATROL_LOCK_KEY = "lock:task:driver-patrol";

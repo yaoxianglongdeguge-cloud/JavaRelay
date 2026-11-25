@@ -12,9 +12,12 @@ import java.util.List;
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
 
+    // 回到"待派单"（toStatus = 0）表示解除司机绑定，必须把 driver_id 清空；
+    // 否则下一次派单会被 driver_id IS NULL 守卫挡住，订单永久卡在待派单。
     @Update("<script>" +
             "UPDATE orders SET status = #{toStatus}, update_time = NOW() " +
-            "<if test='driverId != null'>, driver_id = #{driverId} </if>" +
+            "<if test='driverId != null and toStatus != 0'>, driver_id = #{driverId} </if>" +
+            "<if test='toStatus == 0'>, driver_id = NULL </if>" +
             "WHERE id = #{orderId} AND status = #{fromStatus}" +
             "<if test='fromStatus == 0'> AND driver_id IS NULL </if>" +
             "</script>")

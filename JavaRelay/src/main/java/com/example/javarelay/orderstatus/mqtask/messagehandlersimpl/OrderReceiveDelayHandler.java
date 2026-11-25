@@ -2,6 +2,7 @@ package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.entity.Order;
+import com.example.javarelay.dto.Result;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.orderstatus.constants.statusenum.DriverStatusEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
@@ -9,6 +10,7 @@ import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
 import com.example.javarelay.orderstatus.exception.StatusChangeException;
 import com.example.javarelay.orderstatus.mqtask.messagecells.OrderTimeoutMessage;
 import com.example.javarelay.orderstatus.service.OrderService;
+import com.example.javarelay.orderstatus.dispatch.EnqueueRetryPolicy;
 import com.example.javarelay.orderstatus.service.PassengerOperateService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
@@ -29,6 +31,9 @@ public class OrderReceiveDelayHandler implements RocketMQListener<String> {
 
     @Autowired
     PassengerOperateService passengerOperateService;
+
+    @Autowired
+    EnqueueRetryPolicy enqueueRetryPolicy;
 
     @Override
     public void onMessage(String body) {
@@ -75,8 +80,15 @@ public class OrderReceiveDelayHandler implements RocketMQListener<String> {
                     DriverStatusEnum.RECEIVING.getCode(),
                     DriverStatusEnum.LEISURE.getCode());
 
-            passengerOperateService.ReDispatchOrder(orderId, passengerId);
-            log.info("订单 {} 接单超时，已重派", orderId);
+            Result redispatch = passengerOperateService.ReDispatchOrder(orderId, passengerId);
+
+            if (redispatch == null || redispatch.getCode() != 200) {
+                // 重新入队失败，交给统一的重试策略（次数用尽 / 超时会取消补偿）
+                enqueueRetryPolicy.onEnqueueFailed(orderId, passengerId, 0,
+                        redispatch == null ? "null" : redispatch.getMessage());
+            } else {
+                log.info("订单 {} 接单超时，已重派", orderId);
+            }
 
         } catch (StatusChangeException e) {
             log.info("订单 {} 已被取消或接单，跳过超时处理", orderId);

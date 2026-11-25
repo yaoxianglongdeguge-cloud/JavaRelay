@@ -18,7 +18,8 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
             "  <if test='routeSnapshot != null'> route_snapshot = #{routeSnapshot}, </if>" +
             "  update_time = NOW() " +
             "</set> " +
-            "WHERE order_id = #{orderId} AND estimated_price IS NULL AND driver_id IS NULL" +
+            "WHERE order_id = #{orderId} AND estimated_price IS NULL " +
+            "AND (driver_id IS NULL OR driver_id = #{driverId})" +
             "</script>")
     public int initOrderDetail(
             @Param("orderId") Long orderId,
@@ -35,6 +36,15 @@ public interface OrderDetailMapper extends BaseMapper<OrderDetail> {
     @Select("select acprice_type from order_detail where order_id = #{orderId}")
     public String getActualPriceType(@Param("orderId") Long orderId);
 
+
+    /**
+     * 重派补偿：把 order_detail 退回"只有起终点"的状态。
+     */
+    @Update("UPDATE order_detail SET driver_id = NULL, estimated_price = NULL, " +
+            "route_snapshot = #{routeSnapshot}, update_time = NOW() " +
+            "WHERE order_id = #{orderId} AND actual_price IS NULL")
+    public int resetForRedispatch(@Param("orderId") Long orderId,
+                                  @Param("routeSnapshot") String routeSnapshot);
     @Select("SELECT * FROM order_detail WHERE order_id = #{orderId}")
     OrderDetail selectByOrderId(@Param("orderId") Long orderId);
 

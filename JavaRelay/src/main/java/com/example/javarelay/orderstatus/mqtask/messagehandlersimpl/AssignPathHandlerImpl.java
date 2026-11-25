@@ -3,7 +3,7 @@ package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.orderstatus.mqtask.messagecells.AssignPathMessage;
-import com.example.javarelay.orderstatus.service.PassengerOperateService;
+import com.example.javarelay.orderstatus.service.DispatchService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class AssignPathHandlerImpl implements RocketMQListener<String> {
 
     @Autowired
-    PassengerOperateService passengerOperateService;
+    DispatchService dispatchService;
 
     @Override
     public void onMessage(String body) {
@@ -28,7 +28,7 @@ public class AssignPathHandlerImpl implements RocketMQListener<String> {
             return;
         }
 
-        Result result = passengerOperateService.AssignPath(
+        Result result = dispatchService.AssignPath(
                 cell.getMsg().getOrderId(), cell.getMsg().getPassengerId());
 
         if (result == null || result.getCode() != 200) {

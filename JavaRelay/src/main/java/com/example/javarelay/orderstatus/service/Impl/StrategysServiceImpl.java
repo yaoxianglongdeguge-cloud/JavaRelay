@@ -12,6 +12,7 @@ import com.example.javarelay.strategysapi.SelectPassengerStrategy;
 import com.example.javarelay.strategysapi.SelectPathStrategy;
 import com.example.javarelay.orderstatus.service.StrategysService;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@Slf4j
 public class StrategysServiceImpl implements StrategysService {
 
     Map<Long,InfoCollector> infoCollectors = new ConcurrentHashMap<>();
@@ -148,7 +150,21 @@ public class StrategysServiceImpl implements StrategysService {
         InfoCollector infoCollector = getInfoCollector(orderId);
         if (infoCollector == null) return Result.fail("上下文构建失败");
         String type = infoCollector.getSelectDriverStrategy();
-        return selectDriverStrategys.get(type).findDriverStrategy(infoCollector);
+        SelectDriverStrategy strategy = selectDriverStrategys.get(type);
+
+        // 兼容历史订单：driver_type 为空或不在已注册策略里时，回退到 default:1
+        if (strategy == null) {
+            strategy = selectDriverStrategys.get("default:1");
+            if (type != null && !type.isEmpty()) {
+                log.warn("未找到选车策略 {}，回退到 default:1", type);
+            }
+        }
+
+        if (strategy == null) {
+            return Result.fail("没有可用的选车策略");
+        }
+
+        return strategy.findDriverStrategy(infoCollector);
     }
 
     @Override

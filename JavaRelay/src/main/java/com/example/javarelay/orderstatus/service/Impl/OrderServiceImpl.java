@@ -1,5 +1,6 @@
 package com.example.javarelay.orderstatus.service.Impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.orderstatus.config.StrategyTypeConfig;
 import com.example.javarelay.orderstatus.constants.Constants;
 import com.example.javarelay.orderstatus.dto.PassengerDto;
@@ -126,6 +127,13 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("数据库异常");
         }
 
+        // 重派补偿：从"已派单"退回"待派单"时，清空司机 / 路线 / 预估价。
+        // 否则新司机派下来时，order_detail 还是上一个司机的数据（数据错位）。
+        if (fromStatus.equals(OrderStatusEnum.DISPATCHED.getCode())
+                && toStatus.equals(OrderStatusEnum.WAITING_DISPATCH.getCode())) {
+            resetDispatchSnapshot(orderId);
+        }
+
         if(toStatus.equals(OrderStatusEnum.CANCELED.getCode()) ||
                 toStatus.equals(OrderStatusEnum.FINISHED.getCode())){
 
@@ -197,4 +205,37 @@ public class OrderServiceImpl implements OrderService {
         log.info("订单 {} 派单失败已补偿为取消，原因：{}", orderId, reason);
     }
 
+    /**
+     * 重派补偿：把订单详情退回"只有起终点"，清空司机 / 路线 / 预估价。
+     */
+    private void resetDispatchSnapshot(Long orderId) {
+
+        OrderDetail detail = orderDetailMapper.selectByOrderId(orderId);
+
+        if (detail == null) {
+            log.warn("重派补偿跳过：订单详情不存在 orderId={}", orderId);
+            return;
+        }
+
+        // 已结算的订单不动
+        if (detail.getActualPrice() != null) {
+            log.info("重派补偿跳过：订单已结算 orderId={}", orderId);
+            return;
+        }
+
+        String minimal = null;
+        RouteInfo base = detail.deserializeRouteInfo();
+
+        if (base != null) {
+            RouteInfo keep = new RouteInfo();
+            keep.setStartAndEnd(base.getStartLng(), base.getStartLat(), base.getEndLng(), base.getEndLat());
+            keep.setStartAddress(base.getStartAddress());
+            keep.setEndAddress(base.getEndAddress());
+            minimal = JSON.toJSONString(keep);
+        }
+
+        int rows = orderDetailMapper.resetForRedispatch(orderId, minimal);
+
+        log.info("重派补偿：清空司机/路线/预估价 orderId={} rows={}", orderId, rows);
+    }
 }
