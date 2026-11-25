@@ -27,10 +27,7 @@ public class Order {
     //唯一索引，用来插入订单时防止重复
     private Integer activeFlag;
 
-    public Order(Long passengerId,
-    Integer status){
+    public Order(Long passengerId){
         this.setPassengerId(passengerId);
-        this.setStatus(status);
-        this.setActiveFlag(Constants.ACTIVE_ORDER);
     }
 }

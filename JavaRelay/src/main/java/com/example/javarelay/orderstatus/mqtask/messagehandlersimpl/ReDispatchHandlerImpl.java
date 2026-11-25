@@ -2,7 +2,6 @@ package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.dto.Result;
-import com.example.javarelay.orderstatus.dispatch.EnqueueRetryPolicy;
 import com.example.javarelay.orderstatus.mqtask.messagecells.ReDispatchMessage;
 import com.example.javarelay.orderstatus.service.PassengerOperateService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * 重派消息消费者：再提交一次分配请求，失败则按重试次数决定"再试"还是"取消补偿"。
+ * 重派消息消费者：让订单再提交一次分配请求。
+ *
+ * <p>失败只记日志；订单最终由分配队列的超时兜底取消。
  */
 @Slf4j
 @Component
@@ -21,9 +22,6 @@ public class ReDispatchHandlerImpl implements RocketMQListener<String> {
 
     @Autowired
     PassengerOperateService passengerOperateService;
-
-    @Autowired
-    EnqueueRetryPolicy enqueueRetryPolicy;
 
     @Override
     public void onMessage(String body) {
@@ -37,12 +35,11 @@ public class ReDispatchHandlerImpl implements RocketMQListener<String> {
 
         Long orderId = cell.getMsg().getOrderId();
         Long passengerId = cell.getMsg().getPassengerId();
-        int usedRetry = cell.getMsg().getRetryCount();
 
         Result result = passengerOperateService.ReDispatchOrder(orderId, passengerId);
 
         if (result == null || result.getCode() != 200) {
-            enqueueRetryPolicy.onEnqueueFailed(orderId, passengerId, usedRetry,
+            log.warn("重派入队失败 orderId={} reason={}", orderId,
                     result == null ? "null" : result.getMessage());
         }
     }

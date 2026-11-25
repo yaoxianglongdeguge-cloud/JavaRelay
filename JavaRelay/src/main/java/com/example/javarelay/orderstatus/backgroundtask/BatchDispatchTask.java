@@ -1,16 +1,11 @@
 package com.example.javarelay.orderstatus.backgroundtask;
 
 import com.example.javarelay.orderstatus.constants.Constants;
+import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
 import com.example.javarelay.orderstatus.dispatch.DispatchConstants;
-import com.example.javarelay.orderstatus.dispatch.DispatchExecutor;
 import com.example.javarelay.orderstatus.dispatch.DispatchJob;
-import com.example.javarelay.orderstatus.dispatch.DispatchMatrix;
-import com.example.javarelay.orderstatus.dispatch.DispatchMatrixBuilder;
 import com.example.javarelay.orderstatus.dispatch.DispatchQueue;
-import com.example.javarelay.orderstatus.dispatch.DispatchSolver;
-import com.example.javarelay.orderstatus.dispatch.DriverCandidateProvider;
-import com.example.javarelay.orderstatus.dispatch.DriverCandidateProvider.OrderCandidates;
 import com.example.javarelay.orderstatus.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,15 +13,20 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
- * 批量分配任务：只负责"取一批 → 匹配 → 落库 → 回队"。
+ * 批量分配任务（骨架）。
  *
- * <p>队列在 {@link DispatchQueue}，失败决策在 {@code EnqueueRetryPolicy}，
- * 本类不再承担这两件事。
+ * <p>现在只做：取一批 → 丢掉超时的 → doMatch（待实现）→ 没派成的放回队列。
+ *
+ * <p>接入匹配时，在 {@link #doMatch(List)} 里补：
+ * <ol>
+ *   <li>按订单坐标取候选司机</li>
+ *   <li>构造收益矩阵</li>
+ *   <li>求最优分配（最大权匹配）</li>
+ *   <li>逐个落库，返回没派成的订单</li>
+ * </ol>
  */
 @Slf4j
 @Component
@@ -37,18 +37,6 @@ public class BatchDispatchTask {
 
     @Autowired
     OrderService orderService;
-
-    @Autowired
-    DriverCandidateProvider candidateProvider;
-
-    @Autowired
-    DispatchMatrixBuilder matrixBuilder;
-
-    @Autowired
-    DispatchSolver solver;
-
-    @Autowired
-    DispatchExecutor executor;
 
     public int size() {
         return dispatchQueue.size();
@@ -73,44 +61,28 @@ public class BatchDispatchTask {
             return;
         }
 
-        // 1) 候选
-        List<OrderCandidates> candidates = new ArrayList<>(alive.size());
-        for (DispatchJob job : alive) {
-            candidates.add(candidateProvider.candidatesOf(job));
-        }
+        log.info("批次分配：本轮取出 {} 单，有效 {} 单，队列剩余 {}",
+                batch.size(), alive.size(), dispatchQueue.size());
 
-        // 2) 矩阵
-        DispatchMatrix matrix = matrixBuilder.build(alive, candidates);
+        List<DispatchJob> leftover = doMatch(alive);
 
-        if (matrix.isEmpty()) {
-            log.info("批次分配：{} 单，附近 5km 内没有可用司机，全部留在队列", alive.size());
-            requeue(alive);
-            return;
-        }
-
-        // 3) 求解
-        DispatchSolver.Solution solution = solver.solve(matrix);
-
-        // 4) 落库
-        Set<Long> failed = executor.execute(alive, matrix, solution);
-
-        List<DispatchJob> leftover = new ArrayList<>();
-        for (DispatchJob job : alive) {
-            if (failed.contains(job.getOrderId())) {
-                leftover.add(job);
+        if (leftover != null && !leftover.isEmpty()) {
+            for (DispatchJob job : leftover) {
+                dispatchQueue.requeue(job);
             }
         }
+    }
 
-        log.info("批次分配[{}]：订单 {} 单 / 半径内候选 {} 个 / 可用 {} 个 -> 匹配 {} 组，派出 {}，失败 {}，"
-                        + "剩余 {}，超半径组合 {}，属性缺失 {}，KM 耗时 {} us",
-                metricNames(alive), alive.size(), matrix.getCandidateCount(), matrix.cols(),
-                solution.matchedCount(), solution.matchedCount() - failed.size(), failed.size(),
-                leftover.size(), matrix.getNoDistanceCount(), matrix.getAttrMissingCount(),
-                solution.getMicros());
-
-        if (!leftover.isEmpty()) {
-            requeue(leftover);
-        }
+    /**
+     * 匹配逻辑的扩展点。
+     *
+     * <p>当前为空实现：所有订单原样退回队列，等下一轮。
+     *
+     * @return 本轮没有派单成功的订单（由调用方放回队列）
+     */
+    protected List<DispatchJob> doMatch(List<DispatchJob> batch) {
+        // TODO 批量匹配
+        return batch;
     }
 
     /** 掉已经超过截止时间还没派出去的订单（取消，不再参与匹配） */
@@ -124,8 +96,9 @@ public class BatchDispatchTask {
             if (now - job.getEnqueueAt() > Constants.REDISPATCH_DEADLINE) {
                 log.warn("订单 {} 在分配队列中等待超时，取消", job.getOrderId());
                 try {
-                    orderService.cancelAfterDispatchFail(job.getOrderId(), job.getPassengerId(),
-                            OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "等待分配超时");
+                    orderService.cancelOrder(job.getOrderId(), job.getPassengerId(),
+                            OrderStatusEnum.WAITING_DISPATCH.getCode(), null,
+                            OrderOperatorEnum.SYSTEM.getCode(), "等待分配超时");
                 } catch (Exception e) {
                     log.error("取消超时订单失败 orderId={}", job.getOrderId(), e);
                 }
@@ -136,22 +109,5 @@ public class BatchDispatchTask {
         }
 
         return alive;
-    }
-
-    private void requeue(List<DispatchJob> jobs) {
-        for (DispatchJob job : jobs) {
-            dispatchQueue.requeue(job);
-        }
-    }
-
-    private String metricNames(List<DispatchJob> jobs) {
-
-        Set<String> names = new HashSet<>();
-
-        for (DispatchJob job : jobs) {
-            names.add(job.getMetric() == null ? "?" : job.getMetric().getName());
-        }
-
-        return String.join(",", names);
     }
 }

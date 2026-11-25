@@ -2,6 +2,7 @@ package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.data.mapper.OrderDetailMapper;
+import com.example.javarelay.orderstatus.service.OrderService;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.orderstatus.mqtask.messagecells.ComputeMoneyMessage;
 import com.example.javarelay.strategysapi.ComputeMoneyStrategy;
@@ -29,6 +30,9 @@ public class ComputeMoneyHandlerImpl implements RocketMQListener<String> {
 
     @Autowired
     OrderDetailMapper orderDetailMapper;
+
+    @Autowired
+    OrderService orderService;
 
     @PostConstruct
     public void init() {
@@ -75,11 +79,6 @@ public class ComputeMoneyHandlerImpl implements RocketMQListener<String> {
             log.warn("订单 {} 金额计算返回空", orderId);
             return;
         }
-
-        try {
-            orderDetailMapper.updateActualPrice(orderId, money);
-        } catch (Exception e) {
-            log.error("金额写入失败 orderId={}", orderId, e);
-        }
+        orderService.settleOrder(orderId, money);
     }
 }

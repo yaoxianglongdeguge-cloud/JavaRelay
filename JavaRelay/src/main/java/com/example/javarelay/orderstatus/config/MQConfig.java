@@ -8,9 +8,6 @@ public class MQConfig {
 
     /** 派单失败后的重试 */
     public static final String MESSAGE_REDISPATCH_TOPIC = "redispatch";
-    public static final String MESSAGE_ASSIGNPASSENGER_TOPIC = "assignPassenger";
-    public static final String MESSAGE_ASSIGNDRIVER_TOPIC = "assignDriver";
-    public static final String MESSAGE_ASSIGNPATH_TOPIC = "assignPath";
 
 
     public static final String ORDER_TIMEOUT_TOPIC = "delay_receive";

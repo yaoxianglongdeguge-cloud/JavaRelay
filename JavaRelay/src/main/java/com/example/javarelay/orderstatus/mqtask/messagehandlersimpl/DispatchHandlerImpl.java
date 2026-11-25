@@ -1,26 +1,23 @@
 package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.orderstatus.mqtask.messagecells.AssignPassengerMessage;
+import com.example.javarelay.dto.Result;
 import com.example.javarelay.orderstatus.mqtask.messagecells.DispatchMessage;
+import com.example.javarelay.orderstatus.service.DispatchService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-/**
- * 派单入口：只负责把订单推进到下一步（乘客校验）。
- * 后续如果需要"路线与派单并行"，可以在这里额外投递 AssignPathMessage。
- */
+
 @Slf4j
 @Component
 @RocketMQMessageListener(topic = "jr_dispatch", consumerGroup = "jr_dispatch_group")
 public class DispatchHandlerImpl implements RocketMQListener<String> {
 
     @Autowired
-    ApplicationEventPublisher eventPublisher;
+    DispatchService dispatchService;
 
     @Override
     public void onMessage(String body) {
@@ -28,14 +25,52 @@ public class DispatchHandlerImpl implements RocketMQListener<String> {
         DispatchMessage cell = JSON.parseObject(body, DispatchMessage.class);
 
         if (cell == null || cell.getMsg() == null) {
-            log.warn("派单入口消息格式错误: {}", body);
+            log.warn("派单消息格式错误: {}", body);
             return;
         }
 
         Long orderId = cell.getMsg().getOrderId();
         Long passengerId = cell.getMsg().getPassengerId();
 
-        // 入口 → 乘客校验
-        eventPublisher.publishEvent(new AssignPassengerMessage(orderId, passengerId));
+        DispatchMessage.Step step = cell.getMsg().getStep();
+
+        // step 必填：缺了说明消息格式不对，直接丢弃
+        if (step == null) {
+            log.warn("派单消息缺少 step，丢弃: {}", body);
+            return;
+        }
+
+        Result result;
+
+        try {
+            result = execute(step, orderId, passengerId);
+        } catch (Exception e) {
+            log.error("派单步骤异常 orderId={} step={}", orderId, step, e);
+            if (step == DispatchMessage.Step.PATH) {
+                throw e;                        // 交给 MQ 重试
+            }
+            return;
+        }
+
+        if (result != null && result.getCode() == 200) {
+            return;
+        }
+
+        String reason = result == null ? "null" : result.getMessage();
+
+        switch (step) {
+            case DRIVER -> log.warn("派单入队失败 orderId={} reason={}", orderId, reason);
+            case PATH -> throw new RuntimeException("路线步骤失败: " + reason);
+            case PASSENGER -> log.info("乘客校验未通过，服务内部已处理 orderId={} reason={}", orderId, reason);
+        }
+    }
+
+    private Result execute(DispatchMessage.Step step, Long orderId, Long passengerId) {
+
+        return switch (step) {
+            case PASSENGER -> dispatchService.AssignPassenger(orderId, passengerId);
+            case DRIVER -> dispatchService.AssignDriver(orderId, passengerId);
+            case PATH -> dispatchService.AssignPath(orderId, passengerId);
+        };
     }
 }

@@ -8,7 +8,6 @@ public class Constants {
 
 
     public static final Integer ACTIVE_ORDER = 1;
-    public static final Integer FINISHED_ORDER = null;
 
 
     public static final Integer ORDER_TIMEOUT_TIME = 15;

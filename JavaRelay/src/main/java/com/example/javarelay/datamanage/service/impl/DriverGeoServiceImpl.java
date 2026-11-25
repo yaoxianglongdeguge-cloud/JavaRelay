@@ -3,7 +3,7 @@ package com.example.javarelay.datamanage.service.impl;
 import com.example.javarelay.datamanage.service.DriverGeoService;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.infra.redis.rediscommon.RedisPefix;
-import com.example.javarelay.pojo.DriverCandidate;
+import com.example.javarelay.pojo.DriverGeo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.Distance;
@@ -77,7 +77,7 @@ public class DriverGeoServiceImpl implements DriverGeoService {
     @Override
     public Result nearby(BigDecimal lng, BigDecimal lat, double radiusMeters, int limit) {
 
-        List<DriverCandidate> list = new ArrayList<>();
+        List<DriverGeo> list = new ArrayList<>();
 
         if (lng == null || lat == null || radiusMeters <= 0 || limit <= 0) {
             return Result.fail("查询参数非法");
@@ -103,12 +103,12 @@ public class DriverGeoServiceImpl implements DriverGeoService {
                         continue;
                     }
 
-                    DriverCandidate candidate = new DriverCandidate();
-                    candidate.setId(driverId);
-                    candidate.setDistanceMeters(result.getDistance() == null
+                    DriverGeo geo = new DriverGeo();
+                    geo.setDriverId(driverId);
+                    geo.setDistanceMeters(result.getDistance() == null
                             ? 0D : result.getDistance().getValue());
 
-                    list.add(candidate);
+                    list.add(geo);
                 }
             }
 

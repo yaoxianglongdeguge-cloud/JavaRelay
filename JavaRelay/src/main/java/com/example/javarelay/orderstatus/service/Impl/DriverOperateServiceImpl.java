@@ -7,15 +7,12 @@ import com.example.javarelay.dto.Result;
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.orderstatus.exception.StatusChangeException;
 import com.example.javarelay.infra.redis.RedisUtil;
-import com.example.javarelay.data.mapper.DriverMapper;
 import com.example.javarelay.data.mapper.OrderMapper;
-import com.example.javarelay.data.mapper.OrderStatusLogMapper;
 import com.example.javarelay.orderstatus.mqtask.messagecells.ReDispatchMessage;
 import com.example.javarelay.orderstatus.service.DriverOperateService;
 import com.example.javarelay.userinform.service.InformService;
 import com.example.javarelay.orderstatus.service.OrderService;
 import com.example.javarelay.orderstatus.service.StrategysService;
-import com.example.javarelay.orderstatus.constants.statusenum.DriverStatusEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,14 +67,10 @@ public class DriverOperateServiceImpl implements DriverOperateService {
 
         //修改数据库状态
         try{
-            orderService.changeOrderStatus(orderId,passengerId,
-                    fromstatus,
-                    OrderStatusEnum.CANCELED.getCode(),
-                    OrderOperatorEnum.DRIVER.getCode(),
-
-                    driverId,
-                    DriverStatusEnum.RECEIVING.getCode(),
-                    DriverStatusEnum.LEISURE.getCode());
+            if (!orderService.cancelOrder(orderId, passengerId, fromstatus, driverId,
+                    OrderOperatorEnum.DRIVER.getCode(), "司机取消")) {
+                return Result.success("订单已经被取消");
+            }
 
         }catch(StatusChangeException e) {
 
@@ -114,10 +107,9 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         }
 
         try {
-            orderService.changeOrderStatus(order.getId(), order.getPassengerId(),
-                    from, OrderStatusEnum.ARRIVED.getCode(),
-                    OrderOperatorEnum.DRIVER.getCode(),
-                    null, null, null);          // ← 注意：司机状态不用动，传 null
+            if (!orderService.arriveOrder(order.getId(), order.getPassengerId(), driverId)) {
+                return Result.success("订单状态已变化");
+            }
         } catch (StatusChangeException e) {
             return Result.success("订单状态已变化");
         }
@@ -153,14 +145,9 @@ public class DriverOperateServiceImpl implements DriverOperateService {
 
         //修改数据库状态
         try{
-            orderService.changeOrderStatus(orderId,passengerId,
-                    fromstatus,
-                    OrderStatusEnum.FINISHED.getCode(),
-                    OrderOperatorEnum.DRIVER.getCode(),
-
-                    driverId,
-                    DriverStatusEnum.RECEIVING.getCode(),
-                    DriverStatusEnum.LEISURE.getCode());
+            if (!orderService.finishOrder(orderId, passengerId, driverId)) {
+                return Result.success("订单已经结束");
+            }
 
         }catch(StatusChangeException e) {
 
@@ -229,12 +216,9 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         Long passengerId = order.getPassengerId();
 
         try{
-            orderService.changeOrderStatus(orderId,passengerId,
-                    OrderStatusEnum.DISPATCHED.getCode(),
-                    OrderStatusEnum.RECEIVED.getCode(),
-                    OrderOperatorEnum.DRIVER.getCode(),
-
-                    null,null,null);
+            if (!orderService.receiveOrder(orderId, passengerId, driverId)) {
+                return Result.success("订单已经结束");
+            }
 
         }catch(StatusChangeException e) {
 
@@ -253,14 +237,10 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         Long passengerId = order.getPassengerId();
 
         try{
-            orderService.changeOrderStatus(orderId,passengerId,
-                    OrderStatusEnum.DISPATCHED.getCode(),
-                    OrderStatusEnum.WAITING_DISPATCH.getCode(),
-                    OrderOperatorEnum.DRIVER.getCode(),
-
-                    driverId,
-                    DriverStatusEnum.RECEIVING.getCode(),
-                    DriverStatusEnum.LEISURE.getCode());
+            if (!orderService.rollbackForRedispatch(orderId, passengerId, driverId,
+                    OrderOperatorEnum.DRIVER.getCode())) {
+                return Result.success("订单已经结束");
+            }
             // 0
             redisUtil.tryunLockDriver(driverId);
 

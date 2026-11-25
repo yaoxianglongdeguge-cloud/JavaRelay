@@ -152,11 +152,11 @@ public class StrategysServiceImpl implements StrategysService {
         String type = infoCollector.getSelectDriverStrategy();
         SelectDriverStrategy strategy = selectDriverStrategys.get(type);
 
-        // 兼容历史订单：driver_type 为空或不在已注册策略里时，回退到 default:1
+        // 兼容历史订单：driver_type 为空或不在已注册策略里时，回退到 default
         if (strategy == null) {
-            strategy = selectDriverStrategys.get("default:1");
+            strategy = selectDriverStrategys.get("default");
             if (type != null && !type.isEmpty()) {
-                log.warn("未找到选车策略 {}，回退到 default:1", type);
+                log.warn("未找到选车策略 {}，回退到 default", type);
             }
         }
 

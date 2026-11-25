@@ -4,6 +4,7 @@ import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.infra.redis.rediscommon.RedisPefix;
+import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,8 +37,8 @@ public class StuckOrderTask {
         try {
             for (Order o : orderMapper.selectStuckOrders(5)) {
                 log.warn("清理超时未推进订单 {}", o.getId());
-                orderService.cancelAfterDispatchFail(o.getId(), o.getPassengerId(),
-                        o.getStatus(), o.getDriverId(), "订单超时未推进");
+                orderService.cancelOrder(o.getId(), o.getPassengerId(), o.getStatus(), o.getDriverId(),
+                        OrderOperatorEnum.SYSTEM.getCode(), "订单超时未推进");
                 if (o.getDriverId() != null) {
                     redisUtil.tryunLockDriver(o.getDriverId());
                 }

@@ -1,29 +1,20 @@
 package com.example.javarelay.orderstatus.service.Impl;
 
-import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.data.entity.OrderDetail;
 import com.example.javarelay.userinform.constants.InformTypeEnum;
 import com.example.javarelay.orderstatus.constants.Constants;
-import com.example.javarelay.orderstatus.dto.DriverDto;
 import com.example.javarelay.orderstatus.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
-import com.example.javarelay.orderstatus.pojo.RouteInfo;
 import com.example.javarelay.data.entity.Order;
 import com.example.javarelay.orderstatus.exception.StatusChangeException;
 import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.data.mapper.OrderDetailMapper;
 import com.example.javarelay.data.mapper.OrderMapper;
 import com.example.javarelay.userinform.service.InformService;
-import com.example.javarelay.orderstatus.mqtask.messagecells.ReDispatchMessage;
-import com.example.javarelay.orderstatus.mqtask.messagecells.AssignDriverMessage;
-import com.example.javarelay.orderstatus.mqtask.messagecells.AssignPassengerMessage;
 import com.example.javarelay.orderstatus.mqtask.messagecells.DispatchMessage;
-import com.example.javarelay.orderstatus.mqtask.messagecells.AssignPathMessage;
 import com.example.javarelay.orderstatus.service.OrderService;
 import com.example.javarelay.orderstatus.service.DispatchService;
 import com.example.javarelay.orderstatus.service.PassengerOperateService;
 import com.example.javarelay.orderstatus.service.StrategysService;
-import com.example.javarelay.orderstatus.constants.statusenum.DriverStatusEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +23,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 
 @Slf4j
 @Service
@@ -105,7 +95,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             return Result.fail("系统出问题");
         }
 
-        eventPublisher.publishEvent(new DispatchMessage(orderNew.getId(), passengerId));
+        eventPublisher.publishEvent(new DispatchMessage(orderNew.getId(), passengerId, DispatchMessage.Step.PASSENGER));
 
         return Result.success("已下单，正在为您寻找车辆", orderNew);
     }
@@ -136,15 +126,9 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         //修改数据库状态
         try{
-            orderService.changeOrderStatus(orderId,passengerId,
-                    fromstatus,
-                    OrderStatusEnum.FINISHED.getCode(),
-                    OrderOperatorEnum.PASSENGER.getCode(),
-
-                    driverId,
-                    DriverStatusEnum.RECEIVING.getCode(),
-                    DriverStatusEnum.LEISURE.getCode());
-
+            if (!orderService.finishOrder(orderId, passengerId, driverId)) {
+                return Result.success("订单已经结束");
+            }
         }catch(StatusChangeException e) {
 
             return Result.success("订单已经结束");
@@ -176,9 +160,6 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
 
 
-
-
-
     @Override
     public Result ReDispatchOrder(Long orderId, Long passengerId) {
 
@@ -194,7 +175,7 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             return Result.fail("不存在需要派的订单");
         }
 
-        // 只负责"再提交一次分配请求"；重试次数与超时由 EnqueueRetryPolicy 决定
+        // 只负责"再提交一次分配请求"；没派成的由分配队列的超时兜底
         return dispatchService.AssignDriver(orderId, passengerId);
     }
 
@@ -245,14 +226,10 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
         //修改数据库状态
         try{
-            orderService.changeOrderStatus(orderId,passengerId,
-                    fromstatus,
-                    OrderStatusEnum.CANCELED.getCode(),
-                    OrderOperatorEnum.PASSENGER.getCode(),
-
-                    driverId,
-                    DriverStatusEnum.RECEIVING.getCode(),
-                    DriverStatusEnum.LEISURE.getCode());
+            if (!orderService.cancelOrder(orderId, passengerId, fromstatus, driverId,
+                    OrderOperatorEnum.PASSENGER.getCode(), "乘客取消")) {
+                return Result.success("订单已经被取消");
+            }
 
         }catch(StatusChangeException e) {
 
@@ -272,67 +249,4 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
     }
 
 
-    //    private Result DispatchOrder(PassengerDto passengerDto,Order order){
-//
-//
-//        Result result = AssignDriver(passengerDto.getPassengerId(),order.getId());
-//
-//        if (result.getCode() != 200) {
-//            // 没派到：订单还是 0，没有司机要还
-//            return result;
-//        }
-//
-//        DriverDto driverDto = (DriverDto) result.getData();
-//        if (driverDto == null || driverDto.getDriverId() == null) {
-//            orderService.cancelAfterDispatchFail(order.getId(), passengerDto.getPassengerId(),
-//                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null, "派单结果异常");
-//            return Result.fail("派单失败，请重试");
-//        }
-//
-//        //确定路线
-//        try{
-//
-//            Result resultPath = strategysService.findPathByStrategy(order.getId());
-//            RouteInfo routeInfo = (RouteInfo) resultPath.getData();
-//            routeInfo.setStartAndEnd(
-//                    passengerDto.getStartLng(),
-//                    passengerDto.getStartLat(),
-//                    passengerDto.getEndLng(),
-//                    passengerDto.getEndLat()
-//            );
-//
-//            routeInfo.setStartAddress(passengerDto.getStartAddress());
-//            routeInfo.setEndAddress(passengerDto.getEndAddress());
-//
-//            //预估金额
-//            Result resultPreMoney = strategysService.preComputeMoney(order.getId());
-//            BigDecimal preMoney = (BigDecimal)resultPreMoney.getData();
-//
-//            try{
-//                orderDetailMapper.initOrderDetail(
-//                        order.getId(),
-//                        driverDto.getDriverId(),
-//                        preMoney,
-//                        JSON.toJSONString(routeInfo)
-//                );
-//            }catch (Exception e){
-//                return Result.fail("系统出问题");
-//            }
-//
-//
-//            //通知司机
-//            informService.informDriver(order.getId(),passengerDto.getPassengerId(),driverDto.getDriverId(),
-//                    InformTypeEnum.STATUS_CONFIRM.getCode(),"已派单");
-//
-//        }catch (Exception e) {
-//            log.error("派单后续步骤失败，开始补偿 orderId={}", order.getId(), e);
-//
-//            orderService.cancelAfterDispatchFail(order.getId(),passengerDto.getPassengerId(),
-//                    OrderStatusEnum.DISPATCHED.getCode(), driverDto.getDriverId(), e.getMessage());
-//
-//            redisUtil.tryunLockDriver(driverDto.getDriverId());   // DB 补偿成功后再放 Redis
-//            return Result.fail("派单失败，请重试");
-//        }
-//        return Result.success("派单成功");
-//    }
 }

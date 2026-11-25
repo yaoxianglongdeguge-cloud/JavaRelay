@@ -7,9 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 重派消息：订单"提交分配"失败后的重试载体。
+ * 重派消息：让订单"再提交一次分配请求"。
  *
- * <p>{@code retryCount} 让重试次数随消息传递，不需要额外的存储。
+ * <p>失败处理已收进消费者（记日志），不再携带重试次数。
  */
 public class ReDispatchMessage extends MessageCell<ReDispatchMessage.msg> {
 
@@ -21,9 +21,6 @@ public class ReDispatchMessage extends MessageCell<ReDispatchMessage.msg> {
         Long orderId;
 
         Long passengerId;
-
-        /** 已经重试过的次数，首次为 0 */
-        int retryCount;
     }
 
     public ReDispatchMessage() {
@@ -31,11 +28,6 @@ public class ReDispatchMessage extends MessageCell<ReDispatchMessage.msg> {
 
     public ReDispatchMessage(Long orderId, Long passengerId) {
         this.setTopic(MQConfig.MESSAGE_REDISPATCH_TOPIC);
-        this.setMsg(new msg(orderId, passengerId, 0));
-    }
-
-    public ReDispatchMessage(Long orderId, Long passengerId, int retryCount) {
-        this.setTopic(MQConfig.MESSAGE_REDISPATCH_TOPIC);
-        this.setMsg(new msg(orderId, passengerId, retryCount));
+        this.setMsg(new msg(orderId, passengerId));
     }
 }

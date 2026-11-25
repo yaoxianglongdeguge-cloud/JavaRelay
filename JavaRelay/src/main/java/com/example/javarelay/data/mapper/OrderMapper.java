@@ -2,7 +2,9 @@ package com.example.javarelay.data.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.javarelay.data.entity.Order;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -12,56 +14,44 @@ import java.util.List;
 @Mapper
 public interface OrderMapper extends BaseMapper<Order> {
 
-    // 回到"待派单"（toStatus = 0）表示解除司机绑定，必须把 driver_id 清空；
-    // 否则下一次派单会被 driver_id IS NULL 守卫挡住，订单永久卡在待派单。
-    @Update("<script>" +
-            "UPDATE orders SET status = #{toStatus}, update_time = NOW() " +
-            "<if test='driverId != null and toStatus != 0'>, driver_id = #{driverId} </if>" +
-            "<if test='toStatus == 0'>, driver_id = NULL </if>" +
-            "WHERE id = #{orderId} AND status = #{fromStatus}" +
-            "<if test='fromStatus == 0'> AND driver_id IS NULL </if>" +
-            "</script>")
-    public int updateStatusWithOptimisticLock(@Param("orderId") Long orderId,
-                                       @Param("fromStatus") Integer fromStatus,
-                                       @Param("toStatus") Integer toStatus,
-                                       @Param("driverId") Long driverId);
+    @Insert("INSERT INTO orders (passenger_id, status, driver_id, active_flag, create_time, update_time) " +
+            "VALUES (#{passengerId}, #{status}, NULL, #{activeFlag}, NOW(), NOW())")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insertOrder(Order order);
 
+    @Update("UPDATE orders SET status = 1, driver_id = #{driverId}, update_time = NOW() " +
+            "WHERE id = #{orderId} AND status = 0 AND driver_id IS NULL AND active_flag = 1")
+    int dispatch(@Param("orderId") Long orderId, @Param("driverId") Long driverId);
 
-    @Update("<script>" +
-            "UPDATE orders SET status = #{toStatus}, update_time = NOW() " +
-            "<if test='driverId != null'>, driver_id = #{driverId} </if>" +
-            "WHERE id = #{orderId} AND status IN " +
-            "<foreach collection='fromStatus' item='status' open='(' separator=',' close=')'>" +
-            "#{status}" +
-            "</foreach>" +
-            "</script>")
-    public int updateCancelWithOptimisticLock(@Param("orderId") Long orderId,
-                                              @Param("fromStatus") Integer[] fromStatus,
-                                              @Param("toStatus") Integer toStatus,
-                                              @Param("driverId") Long driverId);
+    @Update("UPDATE orders SET status = 2, update_time = NOW() " +
+            "WHERE id = #{orderId} AND status = 1 AND driver_id = #{driverId}")
+    int receive(@Param("orderId") Long orderId, @Param("driverId") Long driverId);
 
-    @Update("<script>" +
-            "UPDATE orders SET active_flag = #{toFlag}, update_time = NOW() " +
-            "WHERE id = #{orderId} AND active_flag = #{fromFlag}" +
-            "</script>")
-    public int updateActiveFlag(@Param("orderId") Long orderId,
-                                @Param("fromFlag") Integer fromFlag,
-                                @Param("toFlag") Integer toFlag
-                                             );
+    @Update("UPDATE orders SET status = 4, update_time = NOW() " +
+            "WHERE id = #{orderId} AND status = 2 AND driver_id = #{driverId}")
+    int arrive(@Param("orderId") Long orderId, @Param("driverId") Long driverId);
 
+    @Update("UPDATE orders SET status = 7, active_flag = NULL, update_time = NOW() " +
+            "WHERE id = #{orderId} AND status = 4 AND active_flag = 1")
+    int finish(@Param("orderId") Long orderId);
+
+    @Update("UPDATE orders SET status = 0, driver_id = NULL, update_time = NOW() " +
+            "WHERE id = #{orderId} AND status = 1 AND driver_id = #{driverId}")
+    int rollbackToWaiting(@Param("orderId") Long orderId, @Param("driverId") Long driverId);
+
+    @Update("UPDATE orders SET status = 6, active_flag = NULL, update_time = NOW() " +
+            "WHERE id = #{orderId} AND status IN (0, 1, 2) AND active_flag = 1")
+    int cancel(@Param("orderId") Long orderId);
 
     @Select("SELECT * FROM orders WHERE passenger_id = #{passengerId} " +
             "AND active_flag = 1 ORDER BY create_time DESC LIMIT 1")
-    public Order passengerSelectUnFinshed(Long passengerId);
+    Order passengerSelectUnFinshed(Long passengerId);
 
     @Select("SELECT * FROM orders WHERE driver_id = #{driverId} " +
             "AND active_flag = 1 ORDER BY create_time DESC LIMIT 1")
-    public Order driverSelectUnFinshed(Long driverId);
+    Order driverSelectUnFinshed(Long driverId);
 
-    //把超过一定时间没有有效推进的订单清理掉
     @Select("SELECT * FROM orders WHERE active_flag = 1 AND status IN (0, 1) " +
             "AND update_time < DATE_SUB(NOW(), INTERVAL #{minutes} MINUTE) LIMIT 100")
     List<Order> selectStuckOrders(@Param("minutes") int minutes);
-
-
 }

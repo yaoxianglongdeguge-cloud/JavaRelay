@@ -19,10 +19,6 @@ public enum OrderStatusEnum {
         this.desc = desc;
     }
 
-    public static Integer[] getCancelFromStatus(){
-        return new Integer[]{0,1,2};
-    }
-
     public int getCode() { return code; }
     public String getDesc() { return desc; }
 
