@@ -6,11 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * 重派消息：让订单"再提交一次分配请求"。
- *
- * <p>失败处理已收进消费者（记日志），不再携带重试次数。
- */
 public class ReDispatchMessage extends MessageCell<ReDispatchMessage.msg> {
 
     @Data
@@ -21,13 +16,15 @@ public class ReDispatchMessage extends MessageCell<ReDispatchMessage.msg> {
         Long orderId;
 
         Long passengerId;
+
+        Integer operator;
     }
 
     public ReDispatchMessage() {
     }
 
-    public ReDispatchMessage(Long orderId, Long passengerId) {
+    public ReDispatchMessage(Long orderId, Long passengerId, Integer operator) {
         this.setTopic(MQConfig.MESSAGE_REDISPATCH_TOPIC);
-        this.setMsg(new msg(orderId, passengerId));
+        this.setMsg(new msg(orderId, passengerId, operator));
     }
 }

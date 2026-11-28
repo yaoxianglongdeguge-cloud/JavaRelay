@@ -24,5 +24,5 @@ public interface OrderService {
     boolean cancelOrder(Long orderId, Long passengerId, Integer fromStatus, Long driverId,
                         Integer operator, String reason);
 
-    boolean rollbackForRedispatch(Long orderId, Long passengerId, Long driverId, Integer operator);
+    boolean rollbackForRedispatch(Long orderId, Long passengerId, Integer operator);
 }

@@ -53,7 +53,7 @@ public class OrderServiceImpl implements OrderService {
 
     private NodeResult advance(Long orderId, OrderNode node) {
 
-        // 串行点：锁住订单行，同一订单的节点推进从这里排队
+        // ① 串行点：锁住订单行，同一订单的节点推进从这里排队
         Order order = orderNodeMapper.lockForAdvance(orderId);
 
         if (order == null) {
@@ -64,7 +64,7 @@ public class OrderServiceImpl implements OrderService {
             return NodeResult.NOT_READY;
         }
 
-        // 已被串行化，此时节点集合不会再变
+        // ② 已被串行化，此时节点集合不会再变
         List<String> done = orderNodeMapper.selectKeys(orderId);
 
         if (done.contains(node.name())) {
@@ -78,7 +78,7 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // 写入（主键兜底）
+        // ③ 写入（主键兜底）
         try {
             orderNodeMapper.insertNode(orderId, node.name());
         } catch (DuplicateKeyException e) {
@@ -289,10 +289,19 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean rollbackForRedispatch(Long orderId, Long passengerId, Long driverId, Integer operator) {
+    public boolean rollbackForRedispatch(Long orderId, Long passengerId, Integer operator) {
 
+        Order order = orderNodeMapper.lockForAdvance(orderId);
+
+        if (order == null || order.getFrozenAt() != null) {
+            return false;
+        }
+        if (!Integer.valueOf(OrderStatusEnum.DISPATCHED.getCode()).equals(order.getStatus())) {
+            log.info("回溯跳过：订单 {} 不在已派单状态 status={}", orderId, order.getStatus());
+            return false;
+        }
         if (orderNodeMapper.count(orderId, OrderNode.DISPATCH.name()) == 0) {
-            log.warn("重派补偿跳过：订单 {} 没有 DISPATCH 节点", orderId);
+            log.warn("回溯跳过：订单 {} 没有 DISPATCH 节点", orderId);
             return false;
         }
 

@@ -236,27 +236,12 @@ public class DriverOperateServiceImpl implements DriverOperateService {
         Long orderId = order.getId();
         Long passengerId = order.getPassengerId();
 
-        try{
-            if (!orderService.rollbackForRedispatch(orderId, passengerId, driverId,
-                    OrderOperatorEnum.DRIVER.getCode())) {
-                return Result.success("订单已经结束");
-            }
-            // 0
-            redisUtil.tryunLockDriver(driverId);
-
-        }catch(StatusChangeException e) {
-
-            return Result.success("订单已经结束");
-        }
-
-        ReDispatchMessage reDispatchMessage = new ReDispatchMessage(orderId,passengerId);
-
-        eventPublisher.publishEvent(reDispatchMessage);
+        eventPublisher.publishEvent(new ReDispatchMessage(orderId, passengerId,
+                OrderOperatorEnum.DRIVER.getCode()));
 
         informService.informPassenger(orderId,driverId,passengerId,InformTypeEnum.STATUS_CONFIRM.getCode(),"已拒单");
 
         return Result.success("已拒单");
-
     }
 
     private Boolean driverCheck(DriverDto driverDto){

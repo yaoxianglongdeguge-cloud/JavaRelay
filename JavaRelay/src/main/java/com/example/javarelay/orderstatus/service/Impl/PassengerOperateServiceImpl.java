@@ -97,7 +97,6 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
     }
 
 
-
     @Override
     public Result FinishOrder(Long passengerId) {
 
@@ -152,30 +151,6 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
             return false;
         }
         return true;
-    }
-
-
-
-    @Override
-    public Result ReDispatchOrder(Long orderId, Long passengerId) {
-
-        Order order;
-
-        try {
-            order = orderMapper.selectById(orderId);
-        } catch (Exception e) {
-            return Result.fail("系统出问题");
-        }
-
-        if (order == null
-                || order.getStatus() == null
-                || !order.getStatus().equals(OrderStatusEnum.WAITING_DISPATCH.getCode())) {
-            return Result.fail("订单不在待派单状态");
-        }
-
-        eventPublisher.publishEvent(new DispatchMessage(orderId, passengerId, DispatchMessage.Step.DRIVER));
-
-        return Result.success("已提交匹配司机请求");
     }
 
     @Override
