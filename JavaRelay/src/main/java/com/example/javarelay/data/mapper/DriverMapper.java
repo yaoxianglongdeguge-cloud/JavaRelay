@@ -2,6 +2,7 @@ package com.example.javarelay.data.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.example.javarelay.data.entity.Driver;
+import com.example.javarelay.pojo.DriverIdle;
 import com.example.javarelay.pojo.DriverRedis;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -23,4 +24,12 @@ public interface DriverMapper extends BaseMapper<Driver> {
 
     @Select("select id ,status from drivers where id >= #{nextScan} limit #{num}")
     public List<DriverRedis> getDriverRedis(@Param("nextScan") int nextScan,@Param("num") int num);
+
+    @Select("<script>" +
+            "SELECT d.id AS driverId, d.update_time AS updateTime, dd.score AS score " +
+            "FROM drivers d LEFT JOIN driver_detail dd ON dd.driver_id = d.id " +
+            "WHERE d.status = 0 AND d.id IN " +
+            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach>" +
+            "</script>")
+    List<DriverIdle> selectIdleByIds(@Param("ids") List<Long> ids);
 }

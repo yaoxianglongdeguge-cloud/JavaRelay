@@ -13,6 +13,9 @@ public class MQConfig {
     // 派司机引擎
     public static final String MESSAGE_MATCH_DRIVER_TOPIC = "match_driver";
 
+    // 派司机超时
+    public static final String MESSAGE_MATCH_TIMEOUT_TOPIC = "match_timeout";
+
     public static final String ORDER_TIMEOUT_TOPIC = "delay_receive";
 
 

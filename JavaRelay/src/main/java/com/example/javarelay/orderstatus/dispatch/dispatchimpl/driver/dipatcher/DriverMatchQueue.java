@@ -37,6 +37,7 @@ public class DriverMatchQueue {
         return true;
     }
 
+    //拉出一批订单
     public List<DriverMatchJob> drain(int max) {
         List<DriverMatchJob> batch = new ArrayList<>(max);
         queue.drainTo(batch, max);

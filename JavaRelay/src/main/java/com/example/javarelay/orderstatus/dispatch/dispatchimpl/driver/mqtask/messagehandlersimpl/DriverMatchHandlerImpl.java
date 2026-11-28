@@ -1,12 +1,13 @@
 package com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.pojo.DriverMatchJob;
 import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.dipatcher.DriverMatchQueue;
 import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.metric.DriverMetric;
 import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.mqtask.messagecells.DriverMatchMessage;
+import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.pojo.DriverMatchJob;
 import com.example.javarelay.orderstatus.entity.OrderDetail;
 import com.example.javarelay.orderstatus.mapper.OrderDetailMapper;
+import com.example.javarelay.orderstatus.pojo.RouteInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -42,12 +43,23 @@ public class DriverMatchHandlerImpl implements RocketMQListener<String> {
         Long orderId = cell.getMsg().getOrderId();
         Long passengerId = cell.getMsg().getPassengerId();
 
-        DriverMetric metric = pickMetric(orderId);
+        OrderDetail detail = orderDetailMapper.selectByOrderId(orderId);
+
+        RouteInfo route = detail == null ? null : detail.deserializeRouteInfo();
+
+        if (route == null || route.getStartLng() == null || route.getStartLat() == null) {
+            log.warn("订单 {} 缺少起点，无法派司机", orderId);
+            return;
+        }
+
+        DriverMetric metric = pickMetric(orderId, detail);
 
         DriverMatchJob job = new DriverMatchJob();
         job.setOrderId(orderId);
         job.setPassengerId(passengerId);
         job.setMetric(metric);
+        job.setStartLng(route.getStartLng().doubleValue());
+        job.setStartLat(route.getStartLat().doubleValue());
         job.setEnqueueAt(System.currentTimeMillis());
 
         if (!driverMatchQueue.offer(job)) {
@@ -59,9 +71,8 @@ public class DriverMatchHandlerImpl implements RocketMQListener<String> {
     }
 
     // 乘客下单时选的 type 决定用哪个指标，没匹配上就退到 default
-    private DriverMetric pickMetric(Long orderId) {
+    private DriverMetric pickMetric(Long orderId, OrderDetail detail) {
 
-        OrderDetail detail = orderDetailMapper.selectByOrderId(orderId);
         String type = detail == null ? null : detail.getDriverType();
 
         for (DriverMetric metric : driverMetrics) {

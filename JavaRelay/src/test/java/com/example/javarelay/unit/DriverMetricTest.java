@@ -4,6 +4,7 @@ import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.metric.imp
 import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.pojo.DriverCandidate;
 import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.metric.DriverMetric;
 import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.metric.impl.IdleMetric;
+import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.metric.impl.ScoreMetric;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -64,5 +65,32 @@ class DriverMetricTest {
         DriverCandidate far = candidate(800, 0);
 
         assertTrue(m.score(near) > m.score(far));
+    }
+
+    @Test
+    @DisplayName("score")
+    void scoreMetric() {
+        ScoreMetric m = new ScoreMetric();
+        m.setMinScore(3.0);
+        m.setMaxScore(5.0);
+
+        DriverCandidate c = new DriverCandidate();
+
+        c.setScore(2.0);
+        assertEquals(0.0, m.score(c), 1e-9);
+
+        c.setScore(3.0);
+        assertEquals(0.0, m.score(c), 1e-9);
+
+        c.setScore(4.0);
+        assertEquals(0.5, m.score(c), 1e-9);
+
+        c.setScore(5.0);
+        assertEquals(1.0, m.score(c), 1e-9);
+
+        c.setScore(6.0);
+        assertEquals(1.0, m.score(c), 1e-9);
+
+        assertEquals("score", m.type());
     }
 }
