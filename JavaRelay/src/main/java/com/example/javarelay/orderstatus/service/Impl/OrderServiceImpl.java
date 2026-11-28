@@ -53,8 +53,8 @@ public class OrderServiceImpl implements OrderService {
 
     private NodeResult advance(Long orderId, OrderNode node) {
 
-        // ① 串行点：锁住订单行，同一订单的节点推进从这里排队
-        Order order = orderMapper.lockOrder(orderId);
+        // 串行点：锁住订单行，同一订单的节点推进从这里排队
+        Order order = orderNodeMapper.lockForAdvance(orderId);
 
         if (order == null) {
             log.warn("订单不存在 orderId={}", orderId);
@@ -64,7 +64,7 @@ public class OrderServiceImpl implements OrderService {
             return NodeResult.NOT_READY;
         }
 
-        // ② 已被串行化，此时节点集合不会再变
+        // 已被串行化，此时节点集合不会再变
         List<String> done = orderNodeMapper.selectKeys(orderId);
 
         if (done.contains(node.name())) {
@@ -78,7 +78,7 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // ③ 写入（主键兜底）
+        // 写入（主键兜底）
         try {
             orderNodeMapper.insertNode(orderId, node.name());
         } catch (DuplicateKeyException e) {

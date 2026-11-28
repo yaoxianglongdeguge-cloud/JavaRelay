@@ -1,5 +1,6 @@
 package com.example.javarelay.orderstatus.node;
 
+import com.example.javarelay.orderstatus.entity.Order;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -10,6 +11,9 @@ import java.util.List;
 
 @Mapper
 public interface OrderNodeMapper {
+
+    @Select("SELECT * FROM orders WHERE id = #{orderId} FOR UPDATE")
+    Order lockForAdvance(@Param("orderId") Long orderId);
 
     @Insert("INSERT INTO order_node (order_id, node_key) VALUES (#{orderId}, #{nodeKey})")
     int insertNode(@Param("orderId") Long orderId, @Param("nodeKey") String nodeKey);

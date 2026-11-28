@@ -19,9 +19,6 @@ public interface OrderMapper extends BaseMapper<Order> {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insertOrder(Order order);
 
-    @Select("SELECT * FROM orders WHERE id = #{orderId} FOR UPDATE")
-    Order lockOrder(@Param("orderId") Long orderId);
-
     @Update("UPDATE orders SET status = 1, driver_id = #{driverId}, update_time = NOW() WHERE id = #{orderId}")
     int markDispatched(@Param("orderId") Long orderId, @Param("driverId") Long driverId);
 
