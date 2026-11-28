@@ -7,7 +7,6 @@ import com.example.javarelay.orderstatus.pojo.RouteInfo;
 import com.example.javarelay.strategysimpl.infocollect.InfoCollector;
 import com.example.javarelay.orderstatus.mqtask.messagecells.ComputeMoneyMessage;
 import com.example.javarelay.strategysapi.PreComputeStrategy;
-import com.example.javarelay.strategysapi.SelectDriverStrategy;
 import com.example.javarelay.strategysapi.SelectPassengerStrategy;
 import com.example.javarelay.strategysapi.SelectPathStrategy;
 import com.example.javarelay.orderstatus.service.StrategysService;
@@ -27,11 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StrategysServiceImpl implements StrategysService {
 
     Map<Long,InfoCollector> infoCollectors = new ConcurrentHashMap<>();
-
-    @Autowired
-    List<SelectDriverStrategy> selectDriverStrategyList;
-    Map<String, SelectDriverStrategy> selectDriverStrategys = new HashMap<>();
-
     @Autowired
     List<SelectPassengerStrategy> selectPassengerStrategyList;
     Map<String, SelectPassengerStrategy> selectPassengerStrategys = new HashMap<>();
@@ -52,10 +46,6 @@ public class StrategysServiceImpl implements StrategysService {
 
     @PostConstruct
     public void init(){
-        for(SelectDriverStrategy s:selectDriverStrategyList){
-            selectDriverStrategys.put(s.getType(),s);
-        }
-
         for(SelectPassengerStrategy s:selectPassengerStrategyList){
             selectPassengerStrategys.put(s.getType(),s);
         }
@@ -142,29 +132,6 @@ public class StrategysServiceImpl implements StrategysService {
         if (infoCollector == null) return Result.fail("上下文构建失败");
         String type = infoCollector.getSelectPassengerStrategy();
         return selectPassengerStrategys.get(type).findPassengerStrategy(infoCollector);
-    }
-
-    @Override
-    public Result findDriverByStrategy(Long orderId) {
-
-        InfoCollector infoCollector = getInfoCollector(orderId);
-        if (infoCollector == null) return Result.fail("上下文构建失败");
-        String type = infoCollector.getSelectDriverStrategy();
-        SelectDriverStrategy strategy = selectDriverStrategys.get(type);
-
-        // 兼容历史订单：driver_type 为空或不在已注册策略里时，回退到 default
-        if (strategy == null) {
-            strategy = selectDriverStrategys.get("default");
-            if (type != null && !type.isEmpty()) {
-                log.warn("未找到选车策略 {}，回退到 default", type);
-            }
-        }
-
-        if (strategy == null) {
-            return Result.fail("没有可用的选车策略");
-        }
-
-        return strategy.findDriverStrategy(infoCollector);
     }
 
     @Override

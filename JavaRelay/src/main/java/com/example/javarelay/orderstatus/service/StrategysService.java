@@ -12,9 +12,6 @@ public interface StrategysService {
     public InfoCollector getInfoCollector(Long orderId);
 
     public Result findPassengerByStrategy(Long orderId);
-
-    public Result findDriverByStrategy(Long orderId);
-
     public Result findPathByStrategy(Long orderId);
 
     public Result preComputeMoney(Long orderId);

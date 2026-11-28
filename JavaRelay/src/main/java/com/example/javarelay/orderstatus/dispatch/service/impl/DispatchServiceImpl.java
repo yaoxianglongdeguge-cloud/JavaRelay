@@ -5,6 +5,7 @@ import com.example.javarelay.dto.Result;
 import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
+import com.example.javarelay.orderstatus.dispatch.dispatchimpl.driver.mqtask.messagecells.DriverMatchMessage;
 import com.example.javarelay.orderstatus.dispatch.dto.DispatchData;
 import com.example.javarelay.orderstatus.dispatch.mqtask.messagecells.DispatchMessage;
 import com.example.javarelay.orderstatus.dispatch.service.DispatchService;
@@ -20,6 +21,7 @@ import com.example.javarelay.userinform.constants.InformTypeEnum;
 import com.example.javarelay.userinform.service.InformService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -45,6 +47,9 @@ public class DispatchServiceImpl implements DispatchService {
 
     @Autowired
     RedisUtil redisUtil;
+
+    @Autowired
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     public DispatchData prepare(DispatchMessage.Step step, Long orderId, Long passengerId) {
@@ -103,12 +108,7 @@ public class DispatchServiceImpl implements DispatchService {
             return null;
         }
 
-        Result picked = strategysService.findDriverByStrategy(orderId);
-
-        if (picked == null || picked.getCode() != 200) {
-            log.warn("选司机入队失败 orderId={} reason={}", orderId,
-                    picked == null ? "null" : picked.getMessage());
-        }
+        eventPublisher.publishEvent(new DriverMatchMessage(orderId, passengerId));
 
         return null;
     }
@@ -179,9 +179,14 @@ public class DispatchServiceImpl implements DispatchService {
             return Result.success("乘客校验通过");
         }
 
-        orderService.cancelOrder(orderId, passengerId,
+        boolean canceled = orderService.cancelOrder(orderId, passengerId,
                 OrderStatusEnum.WAITING_DISPATCH.getCode(), null,
                 OrderOperatorEnum.SYSTEM.getCode(), data.getFailReason());
+
+        if (canceled) {
+            informService.informPassenger(orderId, null, passengerId,
+                    InformTypeEnum.STATUS_CONFIRM.getCode(), "订单已取消：" + data.getFailReason());
+        }
 
         return Result.fail(data.getFailReason());
     }
