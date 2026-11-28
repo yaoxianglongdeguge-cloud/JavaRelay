@@ -2,14 +2,15 @@ package com.example.javarelay.orderstatus.dispatch.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.dto.Result;
+import com.example.javarelay.orderstatus.dispatch.dto.DispatchData;
 import com.example.javarelay.orderstatus.dispatch.mqtask.messagecells.DispatchMessage;
 import com.example.javarelay.orderstatus.dispatch.service.DispatchService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
-
 
 @Slf4j
 @Component
@@ -18,6 +19,9 @@ public class DispatchHandlerImpl implements RocketMQListener<String> {
 
     @Autowired
     DispatchService dispatchService;
+
+    @Autowired
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     public void onMessage(String body) {
@@ -29,48 +33,68 @@ public class DispatchHandlerImpl implements RocketMQListener<String> {
             return;
         }
 
-        Long orderId = cell.getMsg().getOrderId();
-        Long passengerId = cell.getMsg().getPassengerId();
+        DispatchMessage.msg msg = cell.getMsg();
 
-        DispatchMessage.Step step = cell.getMsg().getStep();
+        if (msg.isDone()) {
+            handleAfter(msg);
+        } else {
+            handleBefore(msg);
+        }
+    }
 
-        // step 必填：缺了说明消息格式不对，直接丢弃
-        if (step == null) {
-            log.warn("派单消息缺少 step，丢弃: {}", body);
+    // 处理前：只算不写库
+    private void handleBefore(DispatchMessage.msg msg) {
+
+        Long orderId = msg.getOrderId();
+        Long passengerId = msg.getPassengerId();
+
+        DispatchData data;
+
+        try {
+            data = dispatchService.prepare(msg.getStep(), orderId, passengerId);
+        } catch (Exception e) {
+            log.error("环节准备失败 orderId={} step={}", orderId, msg.getStep(), e);
             return;
         }
+
+        if (data == null) {
+            log.info("环节未完成，等待后续 orderId={} step={}", orderId, msg.getStep());
+            return;
+        }
+
+        eventPublisher.publishEvent(
+                new DispatchMessage(orderId, passengerId, msg.getStep(), true, data));
+    }
+
+    // 处理后：只写库
+    private void handleAfter(DispatchMessage.msg msg) {
+
+        Long orderId = msg.getOrderId();
+        Long passengerId = msg.getPassengerId();
 
         Result result;
 
         try {
-            result = execute(step, orderId, passengerId);
+            result = dispatchService.commit(msg.getStep(), orderId, passengerId, msg.getData());
         } catch (Exception e) {
-            log.error("派单步骤异常 orderId={} step={}", orderId, step, e);
-            if (step == DispatchMessage.Step.PATH) {
-                throw e;                        // 交给 MQ 重试
-            }
+            log.error("环节落库失败 orderId={} step={}", orderId, msg.getStep(), e);
             return;
         }
 
-        if (result != null && result.getCode() == 200) {
+        if (result == null || result.getCode() != 200) {
+            log.warn("环节落库未通过 orderId={} step={} reason={}", orderId, msg.getStep(),
+                    result == null ? "null" : result.getMessage());
             return;
         }
 
-        String reason = result == null ? "null" : result.getMessage();
+        log.info("环节完成 orderId={} step={} result={}", orderId, msg.getStep(), result.getMessage());
 
-        switch (step) {
-            case DRIVER -> log.warn("派单入队失败 orderId={} reason={}", orderId, reason);
-            case PATH -> throw new RuntimeException("路线步骤失败: " + reason);
-            case PASSENGER -> log.info("乘客校验未通过，服务内部已处理 orderId={} reason={}", orderId, reason);
+        DispatchMessage.Step next = msg.getStep().next();
+
+        if (next == null) {
+            return;
         }
-    }
 
-    private Result execute(DispatchMessage.Step step, Long orderId, Long passengerId) {
-
-        return switch (step) {
-            case PASSENGER -> dispatchService.dispatch(orderId, passengerId);
-            case DRIVER -> dispatchService.reDispatch(orderId, passengerId);
-            case PATH -> dispatchService.assignPath(orderId, passengerId);
-        };
+        eventPublisher.publishEvent(new DispatchMessage(orderId, passengerId, next));
     }
 }

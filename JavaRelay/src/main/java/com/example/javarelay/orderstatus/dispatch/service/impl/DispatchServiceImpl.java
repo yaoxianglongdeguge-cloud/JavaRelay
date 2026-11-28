@@ -1,33 +1,29 @@
 package com.example.javarelay.orderstatus.dispatch.service.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.orderstatus.entity.Order;
-import com.example.javarelay.orderstatus.entity.OrderDetail;
-import com.example.javarelay.orderstatus.mapper.OrderDetailMapper;
-import com.example.javarelay.orderstatus.mapper.OrderMapper;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
-import com.example.javarelay.orderstatus.exception.StatusChangeException;
+import com.example.javarelay.orderstatus.dispatch.dto.DispatchData;
 import com.example.javarelay.orderstatus.dispatch.mqtask.messagecells.DispatchMessage;
-
-import com.example.javarelay.orderstatus.pojo.RouteInfo;
 import com.example.javarelay.orderstatus.dispatch.service.DispatchService;
+import com.example.javarelay.orderstatus.entity.Order;
+import com.example.javarelay.orderstatus.entity.OrderDetail;
+import com.example.javarelay.orderstatus.exception.StatusChangeException;
+import com.example.javarelay.orderstatus.mapper.OrderDetailMapper;
+import com.example.javarelay.orderstatus.mapper.OrderMapper;
+import com.example.javarelay.orderstatus.pojo.RouteInfo;
 import com.example.javarelay.orderstatus.service.OrderService;
 import com.example.javarelay.orderstatus.service.StrategysService;
 import com.example.javarelay.userinform.constants.InformTypeEnum;
 import com.example.javarelay.userinform.service.InformService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
-/**
- * 派单流程服务：乘客校验 -> 选司机 -> 落库 -> 路线预估。
- */
 @Slf4j
 @Service
 public class DispatchServiceImpl implements DispatchService {
@@ -50,131 +46,112 @@ public class DispatchServiceImpl implements DispatchService {
     @Autowired
     RedisUtil redisUtil;
 
-    @Autowired
-    ApplicationEventPublisher eventPublisher;
+    @Override
+    public DispatchData prepare(DispatchMessage.Step step, Long orderId, Long passengerId) {
+        return switch (step) {
+            case PASSENGER -> preparePassenger(orderId, passengerId);
+            case DRIVER -> prepareDriver(orderId, passengerId);
+            case PATH -> preparePath(orderId, passengerId);
+        };
+    }
 
     @Override
-    public Result dispatch(Long orderId, Long passengerId) {
+    public Result commit(DispatchMessage.Step step, Long orderId, Long passengerId, DispatchData data) {
+        return switch (step) {
+            case PASSENGER -> commitPassenger(orderId, passengerId, data);
+            case DRIVER -> commitDriver(orderId, passengerId, data);
+            case PATH -> commitPath(orderId, passengerId, data);
+        };
+    }
+
+    private DispatchData preparePassenger(Long orderId, Long passengerId) {
+
+        DispatchData data = new DispatchData();
 
         Order order;
-
         try {
             order = orderMapper.passengerSelectUnFinshed(passengerId);
         } catch (Exception e) {
-            orderService.cancelOrder(orderId, passengerId,
-                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null,
-                    OrderOperatorEnum.SYSTEM.getCode(), "系统问题");
-            return Result.fail("系统出问题");
+            data.setFailReason("系统问题");
+            return data;
         }
 
-        if (order == null || !OrderStatusEnum.of(order.getStatus()).getDesc().equals("待派单")) {
-            return Result.fail("不存在需要派的订单");
+        if (order == null || order.getStatus() == null
+                || order.getStatus() != OrderStatusEnum.WAITING_DISPATCH.getCode()) {
+            data.setFailReason("不存在需要派的订单");
+            return data;
         }
 
-        // 确定用户是否满足打车条件
         Result result = strategysService.findPassengerByStrategy(orderId);
 
         if (result == null || result.getCode() != 200) {
-            orderService.cancelOrder(orderId, passengerId,
-                    OrderStatusEnum.WAITING_DISPATCH.getCode(), null,
-                    OrderOperatorEnum.SYSTEM.getCode(), "用户不符合打车条件");
-            return result == null ? Result.fail("乘客校验失败") : result;
+            data.setFailReason("用户不符合打车条件");
         }
 
-        // 校验通过 → 投递派单消息
-        eventPublisher.publishEvent(new DispatchMessage(orderId, passengerId, DispatchMessage.Step.DRIVER));
-
-        return Result.success("开始寻找司机");
+        return data;
     }
 
-    @Override
-    public Result reDispatch(Long orderId, Long passengerId) {
+    private DispatchData prepareDriver(Long orderId, Long passengerId) {
 
-        Order order;
-
-        try {
-            order = orderMapper.selectById(orderId);
-        } catch (Exception e) {
-            return Result.fail("系统出问题");
-        }
+        Order order = orderMapper.selectById(orderId);
 
         if (order == null) {
-            return Result.fail("订单不存在");
+            return null;
         }
-
         if (order.getStatus() == null
-                || !order.getStatus().equals(OrderStatusEnum.WAITING_DISPATCH.getCode())) {
-            return Result.success("订单不需要派单");
+                || order.getStatus() != OrderStatusEnum.WAITING_DISPATCH.getCode()) {
+            return null;
         }
 
-        Result picked;
-
-        try {
-            picked = strategysService.findDriverByStrategy(orderId);
-        } catch (Exception e) {
-            log.error("选车策略执行失败 orderId={}", orderId, e);
-            return Result.fail("系统出问题");
-        }
+        Result picked = strategysService.findDriverByStrategy(orderId);
 
         if (picked == null || picked.getCode() != 200) {
-            return Result.fail(picked == null ? "选车失败" : picked.getMessage());
+            log.warn("选司机入队失败 orderId={} reason={}", orderId,
+                    picked == null ? "null" : picked.getMessage());
         }
 
-        // 语义唯一：策略返回 200 就代表"已入队"，何时派出去由批处理任务决定
-        return Result.success("已加入分配队列");
+        return null;
     }
 
-    @Override
-    public Result assignPath(Long orderId, Long passengerId) {
+    private DispatchData preparePath(Long orderId, Long passengerId) {
 
-        Order order;
-        try {
-            order = orderMapper.selectById(orderId);
-        } catch (Exception e) {
-            return Result.fail("系统出问题");
-        }
+        DispatchData data = new DispatchData();
+
+        Order order = orderMapper.selectById(orderId);
 
         if (order == null) {
-            return Result.fail("订单不存在");
+            return null;
         }
-
-        // 顺序守卫一：必须已派单
         if (order.getStatus() == null
-                || !order.getStatus().equals(OrderStatusEnum.DISPATCHED.getCode())) {
-            return Result.success("订单未派单，跳过路线计算");
+                || order.getStatus() != OrderStatusEnum.DISPATCHED.getCode()) {
+            return null;
         }
-
-        // 顺序守卫二：必须有司机。派单落库（orders.driver_id）是路线写入的前置条件，
-        // 否则会把 driver_id = null 写进订单详情并锁死。
         if (order.getDriverId() == null) {
-            return Result.success("订单没有司机，跳过路线计算");
+            return null;
         }
 
-        OrderDetail orderDetail;
-        try {
-            orderDetail = orderDetailMapper.selectByOrderId(orderId);
-        } catch (Exception e) {
-            return Result.fail("系统出问题");
-        }
+        OrderDetail orderDetail = orderDetailMapper.selectByOrderId(orderId);
 
         if (orderDetail == null) {
-            return Result.fail("订单详情不存在");
+            data.setFailReason("订单详情不存在");
+            return data;
         }
-
         if (orderDetail.getEstimatedPrice() != null) {
-            return Result.success("路线与预估已就绪，跳过");
+            return null;
         }
 
         RouteInfo base = orderDetail.deserializeRouteInfo();
 
         if (base == null) {
-            return Result.fail("路线快照缺失");
+            data.setFailReason("路线快照缺失");
+            return data;
         }
 
         Result resultPath = strategysService.findPathByStrategy(orderId);
 
         if (resultPath == null || resultPath.getCode() != 200) {
-            return Result.fail("路线计算失败");
+            data.setFailReason("路线计算失败");
+            return data;
         }
 
         RouteInfo routeInfo = (RouteInfo) resultPath.getData();
@@ -186,23 +163,36 @@ public class DispatchServiceImpl implements DispatchService {
         BigDecimal preMoney = resultPreMoney == null ? null : (BigDecimal) resultPreMoney.getData();
 
         if (preMoney == null) {
-            return Result.fail("预估价计算失败");
+            data.setFailReason("预估价计算失败");
+            return data;
         }
 
-        if (!orderService.saveRouteAndPrice(
-                orderId, order.getDriverId(), preMoney, JSON.toJSONString(routeInfo))) {
-            // 已被其他链路写入，属于幂等命中
-            return Result.success("路线已由其他链路写入，跳过");
-        }
+        data.setRoute(routeInfo);
+        data.setEstimatedPrice(preMoney);
 
-        // 通知司机（只有这里发一次）
-        informService.informDriver(orderId, passengerId, order.getDriverId(),
-                InformTypeEnum.STATUS_CONFIRM.getCode(), "已派单");
-
-        return Result.success("路线与预估完成");
+        return data;
     }
 
-    public Result applyAssign(Long orderId, Long passengerId, Long driverId) {
+    private Result commitPassenger(Long orderId, Long passengerId, DispatchData data) {
+
+        if (data == null || data.getFailReason() == null) {
+            return Result.success("乘客校验通过");
+        }
+
+        orderService.cancelOrder(orderId, passengerId,
+                OrderStatusEnum.WAITING_DISPATCH.getCode(), null,
+                OrderOperatorEnum.SYSTEM.getCode(), data.getFailReason());
+
+        return Result.fail(data.getFailReason());
+    }
+
+    private Result commitDriver(Long orderId, Long passengerId, DispatchData data) {
+
+        if (data == null || data.getFailReason() != null) {
+            return Result.fail(data == null ? "没有派单数据" : data.getFailReason());
+        }
+
+        Long driverId = data.getDriverId();
 
         if (driverId == null) {
             return Result.fail("司机为空");
@@ -211,15 +201,7 @@ public class DispatchServiceImpl implements DispatchService {
         if (!redisUtil.tryLockDriver(driverId)) {
             return Result.fail("司机已被占用");
         }
-//        派单数据库修改：
-//        订单主表：
-//        activeflag=1
-//        status=已派单
-//        driverId=1(模拟)
 
-//        绑定司机：
-//        Id=1
-//        status=忙碌
         try {
             if (!orderService.dispatchOrder(orderId, passengerId, driverId)) {
                 throw new StatusChangeException("ORDER_CHANGE_FAIL");
@@ -233,9 +215,29 @@ public class DispatchServiceImpl implements DispatchService {
             return Result.fail("系统出问题");
         }
 
-        // 派单成功 → 进入路线与预估环节
-        eventPublisher.publishEvent(new DispatchMessage(orderId, passengerId, DispatchMessage.Step.PATH));
-
         return Result.success("派单成功");
+    }
+
+    private Result commitPath(Long orderId, Long passengerId, DispatchData data) {
+
+        if (data == null || data.getFailReason() != null) {
+            return Result.fail(data == null ? "没有路线数据" : data.getFailReason());
+        }
+
+        Order order = orderMapper.selectById(orderId);
+
+        if (order == null || order.getDriverId() == null) {
+            return Result.fail("订单没有司机");
+        }
+
+        if (!orderService.saveRouteAndPrice(orderId, order.getDriverId(),
+                data.getEstimatedPrice(), JSON.toJSONString(data.getRoute()))) {
+            return Result.success("路线已由其他链路写入，跳过");
+        }
+
+        informService.informDriver(orderId, passengerId, order.getDriverId(),
+                InformTypeEnum.STATUS_CONFIRM.getCode(), "已派单");
+
+        return Result.success("路线与预估完成");
     }
 }

@@ -17,13 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-/**
- * 对照基准：现状的「条件 INSERT」 vs 方案 B 的「FOR UPDATE + SELECT + INSERT」。
- * 只测耗时与并发错误率，不做断言（除超时）。
- */
-class LockShapeBenchmark {
+import static org.junit.jupiter.api.Assertions.assertTrue;class LockShapeBenchmark {
 
     private static final String URL = System.getProperty("test.db.url",
             "jdbc:mysql://10.66.66.2:3306/javarelay?useUnicode=true&characterEncoding=utf-8"
@@ -59,10 +53,7 @@ class LockShapeBenchmark {
             ps.setLong(1, BASE);
             ps.executeUpdate();
         }
-    }
-
-    /** 现状：一条条件插入（需要 CREATE 已存在） */
-    private static int conditionalInsert(Connection c, long orderId) throws SQLException {
+    }    private static int conditionalInsert(Connection c, long orderId) throws SQLException {
         c.setAutoCommit(false);
         try (PreparedStatement ps = c.prepareStatement(SQL_CONDITIONAL_INSERT)) {
             ps.setLong(1, orderId);
@@ -80,10 +71,7 @@ class LockShapeBenchmark {
         } finally {
             c.setAutoCommit(true);
         }
-    }
-
-    /** 方案 B：锁订单行 → 读节点 → 单行插入 */
-    private static int lockThenInsert(Connection c, long orderId) throws SQLException {
+    }    private static int lockThenInsert(Connection c, long orderId) throws SQLException {
 
         c.setAutoCommit(false);
         try {

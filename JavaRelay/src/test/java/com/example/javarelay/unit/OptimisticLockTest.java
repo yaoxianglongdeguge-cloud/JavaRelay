@@ -130,8 +130,7 @@ class OptimisticLockTest {
     }
 
 
-    /** 与 OrderServiceImpl.cancelOrder 等价：同一事务里插 FROZEN 节点 + 写 frozen_at */
-    private static R runFreeze(long orderId) throws SQLException {
+        private static R runFreeze(long orderId) throws SQLException {
         try (Connection c = open()) {
             c.setAutoCommit(false);
             try {

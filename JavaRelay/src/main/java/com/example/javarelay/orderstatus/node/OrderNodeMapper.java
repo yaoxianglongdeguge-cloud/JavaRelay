@@ -12,10 +12,7 @@ import java.util.List;
 @Mapper
 public interface OrderNodeMapper {
 
-    /**
-     * 节点推进的串行点：锁订单行，并顺带判定是否已冻结。
-     * 锁在 orders 行上，但它是"节点推进"的机制，不是订单查询。
-     */
+    // 节点推进的串行点：锁订单行，顺带判冻结
     @Select("SELECT * FROM orders WHERE id = #{orderId} FOR UPDATE")
     Order lockForAdvance(@Param("orderId") Long orderId);
 
