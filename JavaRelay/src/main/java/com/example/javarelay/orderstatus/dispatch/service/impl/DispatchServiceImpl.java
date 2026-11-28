@@ -1,19 +1,19 @@
-package com.example.javarelay.orderstatus.service.Impl;
+package com.example.javarelay.orderstatus.dispatch.service.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.data.entity.Order;
-import com.example.javarelay.data.entity.OrderDetail;
-import com.example.javarelay.data.mapper.OrderDetailMapper;
-import com.example.javarelay.data.mapper.OrderMapper;
+import com.example.javarelay.orderstatus.entity.Order;
+import com.example.javarelay.orderstatus.entity.OrderDetail;
+import com.example.javarelay.orderstatus.mapper.OrderDetailMapper;
+import com.example.javarelay.orderstatus.mapper.OrderMapper;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
 import com.example.javarelay.orderstatus.exception.StatusChangeException;
-import com.example.javarelay.orderstatus.mqtask.messagecells.DispatchMessage;
+import com.example.javarelay.orderstatus.dispatch.mqtask.messagecells.DispatchMessage;
 
 import com.example.javarelay.orderstatus.pojo.RouteInfo;
-import com.example.javarelay.orderstatus.service.DispatchService;
+import com.example.javarelay.orderstatus.dispatch.service.DispatchService;
 import com.example.javarelay.orderstatus.service.OrderService;
 import com.example.javarelay.orderstatus.service.StrategysService;
 import com.example.javarelay.userinform.constants.InformTypeEnum;
@@ -54,7 +54,7 @@ public class DispatchServiceImpl implements DispatchService {
     ApplicationEventPublisher eventPublisher;
 
     @Override
-    public Result AssignPassenger(Long orderId, Long passengerId) {
+    public Result dispatch(Long orderId, Long passengerId) {
 
         Order order;
 
@@ -88,7 +88,7 @@ public class DispatchServiceImpl implements DispatchService {
     }
 
     @Override
-    public Result AssignDriver(Long orderId, Long passengerId) {
+    public Result reDispatch(Long orderId, Long passengerId) {
 
         Order order;
 
@@ -125,7 +125,7 @@ public class DispatchServiceImpl implements DispatchService {
     }
 
     @Override
-    public Result AssignPath(Long orderId, Long passengerId) {
+    public Result assignPath(Long orderId, Long passengerId) {
 
         Order order;
         try {
@@ -161,17 +161,8 @@ public class DispatchServiceImpl implements DispatchService {
             return Result.fail("订单详情不存在");
         }
 
-        // 阶段守卫：详见 OrderDetailMapper.stage 注释
-        Integer stage = orderDetail.getDataStage();
-
-        if (stage == null) {
-            return Result.success("订单详情已冻结（已取消或已结算），跳过路线计算");
-        }
-        if (stage >= 2) {
+        if (orderDetail.getEstimatedPrice() != null) {
             return Result.success("路线与预估已就绪，跳过");
-        }
-        if (stage != 1) {
-            return Result.success("订单详情尚未派单，跳过路线计算");
         }
 
         RouteInfo base = orderDetail.deserializeRouteInfo();
@@ -211,7 +202,6 @@ public class DispatchServiceImpl implements DispatchService {
         return Result.success("路线与预估完成");
     }
 
-    @Override
     public Result applyAssign(Long orderId, Long passengerId, Long driverId) {
 
         if (driverId == null) {

@@ -13,11 +13,13 @@ import java.util.List;
 @Mapper
 public interface DriverMapper extends BaseMapper<Driver> {
 
-    @Update("UPDATE drivers SET status = 1, update_time = NOW() WHERE id = #{driverId} AND status = 0")
-    int occupy(@Param("driverId") Long driverId);
+    @Update("UPDATE drivers SET status = 1, order_id = #{orderId}, update_time = NOW() " +
+            "WHERE id = #{driverId} AND status = 0 AND order_id IS NULL")
+    int occupy(@Param("driverId") Long driverId, @Param("orderId") Long orderId);
 
-    @Update("UPDATE drivers SET status = 0, update_time = NOW() WHERE id = #{driverId} AND status = 1")
-    int release(@Param("driverId") Long driverId);
+    @Update("UPDATE drivers SET status = 0, order_id = NULL, update_time = NOW() " +
+            "WHERE order_id = #{orderId}")
+    int releaseByOrder(@Param("orderId") Long orderId);
 
     @Select("select id ,status from drivers where id >= #{nextScan} limit #{num}")
     public List<DriverRedis> getDriverRedis(@Param("nextScan") int nextScan,@Param("num") int num);

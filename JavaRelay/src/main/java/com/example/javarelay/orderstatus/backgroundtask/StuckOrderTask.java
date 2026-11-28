@@ -1,7 +1,7 @@
 package com.example.javarelay.orderstatus.backgroundtask;
 
-import com.example.javarelay.data.entity.Order;
-import com.example.javarelay.data.mapper.OrderMapper;
+import com.example.javarelay.orderstatus.entity.Order;
+import com.example.javarelay.orderstatus.mapper.OrderMapper;
 import com.example.javarelay.infra.redis.RedisUtil;
 import com.example.javarelay.infra.redis.rediscommon.RedisPefix;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;

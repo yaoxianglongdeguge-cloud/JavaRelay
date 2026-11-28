@@ -1,4 +1,4 @@
-package com.example.javarelay.orderstatus.mqtask.messagecells;
+package com.example.javarelay.orderstatus.dispatch.mqtask.messagecells;
 
 import com.example.javarelay.infra.mq.MessageCell;
 import com.example.javarelay.orderstatus.config.MQConfig;

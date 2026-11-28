@@ -1,5 +1,6 @@
 package com.example.javarelay.orderstatus.service;
 
+import com.example.javarelay.orderstatus.dispatch.service.DispatchService;
 import com.example.javarelay.orderstatus.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
 

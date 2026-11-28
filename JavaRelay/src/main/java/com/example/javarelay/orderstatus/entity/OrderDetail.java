@@ -1,4 +1,4 @@
-package com.example.javarelay.data.entity;
+package com.example.javarelay.orderstatus.entity;
 
 
 import com.baomidou.mybatisplus.annotation.*;
@@ -31,11 +31,6 @@ public class OrderDetail {
     private BigDecimal estimatedPrice;
     private BigDecimal actualPrice;
 
-    /**
-     * 数据阶段：0=下单只有起终点，1=已派单，2=路线与预估价就绪，null=已冻结（取消或结算完成）。
-     * 所有写入都必须带 {@code WHERE data_stage = 前值}，null 天然挡住一切写入。
-     */
-    private Integer dataStage;
 
     private String acpriceType;
     private String espriceType;

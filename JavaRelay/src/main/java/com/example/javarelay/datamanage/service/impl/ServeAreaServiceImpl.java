@@ -127,8 +127,9 @@ public class ServeAreaServiceImpl implements ServeAreaService {
 
             dataServiceArea = JSON.parseObject(dataServiceAreaStr, new TypeReference<RedisLogicTimeout<ServiceArea>>() {});
 
-            LocalDateTime logicExpireTime = dataServiceArea.getExpireTime();
-            if(!LocalDateTime.now().isAfter(logicExpireTime)){
+            if(dataServiceArea != null
+                    && dataServiceArea.getData() != null
+                    && !LocalDateTime.now().isAfter(dataServiceArea.getExpireTime())){
                 return Result.success(dataServiceArea.getData());
             }
         }
@@ -138,23 +139,14 @@ public class ServeAreaServiceImpl implements ServeAreaService {
         boolean lock = redisUtil.tryLock(RedisPefix.SERVICEAREA_LOCK_PREFIX + city,token,5L);
         if(lock){
             try{
-
                 threadPool.submit(() -> reCreateCache(city));
             }finally {
                 redisUtil.tryunLock(RedisPefix.SERVICEAREA_LOCK_PREFIX + city,token);
             }
         }
 
-        if(dataServiceAreaStr == null || dataServiceAreaStr.isEmpty()){
-            return Result.fail("服务繁忙，请稍后");
-        }
-
-        LocalDateTime logicExpireTime = dataServiceArea.getExpireTime();
-        if(!LocalDateTime.now().isAfter(logicExpireTime)){
-            return Result.success((ServiceArea)dataServiceArea.getData());
-        }
-
-        return Result.success();
+        ServiceArea area = serviceAreaMapper.selectByCity(city);
+        return area == null ? Result.fail("不在服务范围内") : Result.success(area);
     }
 
     private void reCreateCache(String city){

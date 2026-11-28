@@ -1,7 +1,7 @@
 package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.data.mapper.OrderDetailMapper;
+import com.example.javarelay.orderstatus.mapper.OrderDetailMapper;
 import com.example.javarelay.orderstatus.service.OrderService;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.orderstatus.mqtask.messagecells.ComputeMoneyMessage;

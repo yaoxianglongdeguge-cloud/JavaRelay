@@ -4,15 +4,14 @@ import com.example.javarelay.userinform.constants.InformTypeEnum;
 import com.example.javarelay.orderstatus.constants.Constants;
 import com.example.javarelay.orderstatus.dto.PassengerDto;
 import com.example.javarelay.dto.Result;
-import com.example.javarelay.data.entity.Order;
+import com.example.javarelay.orderstatus.entity.Order;
 import com.example.javarelay.orderstatus.exception.StatusChangeException;
 import com.example.javarelay.infra.redis.RedisUtil;
-import com.example.javarelay.data.mapper.OrderDetailMapper;
-import com.example.javarelay.data.mapper.OrderMapper;
+import com.example.javarelay.orderstatus.mapper.OrderDetailMapper;
+import com.example.javarelay.orderstatus.mapper.OrderMapper;
 import com.example.javarelay.userinform.service.InformService;
-import com.example.javarelay.orderstatus.mqtask.messagecells.DispatchMessage;
+import com.example.javarelay.orderstatus.dispatch.mqtask.messagecells.DispatchMessage;
 import com.example.javarelay.orderstatus.service.OrderService;
-import com.example.javarelay.orderstatus.service.DispatchService;
 import com.example.javarelay.orderstatus.service.PassengerOperateService;
 import com.example.javarelay.orderstatus.service.StrategysService;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
@@ -48,9 +47,6 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
 
     @Autowired
     RedisUtil redisUtil;
-
-    @Autowired
-    DispatchService dispatchService;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -166,17 +162,20 @@ public class PassengerOperateServiceImpl implements PassengerOperateService {
         Order order;
 
         try {
-            order = orderMapper.passengerSelectUnFinshed(passengerId);
+            order = orderMapper.selectById(orderId);
         } catch (Exception e) {
             return Result.fail("系统出问题");
         }
 
-        if (order == null || !OrderStatusEnum.of(order.getStatus()).getDesc().equals("待派单")) {
-            return Result.fail("不存在需要派的订单");
+        if (order == null
+                || order.getStatus() == null
+                || !order.getStatus().equals(OrderStatusEnum.WAITING_DISPATCH.getCode())) {
+            return Result.fail("订单不在待派单状态");
         }
 
-        // 只负责"再提交一次分配请求"；没派成的由分配队列的超时兜底
-        return dispatchService.AssignDriver(orderId, passengerId);
+        eventPublisher.publishEvent(new DispatchMessage(orderId, passengerId, DispatchMessage.Step.DRIVER));
+
+        return Result.success("已提交匹配司机请求");
     }
 
     @Override

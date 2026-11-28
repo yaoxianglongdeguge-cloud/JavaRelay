@@ -1,4 +1,4 @@
-package com.example.javarelay.data.entity;
+package com.example.javarelay.orderstatus.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.example.javarelay.orderstatus.constants.Constants;
@@ -26,6 +26,7 @@ public class Order {
 
     //唯一索引，用来插入订单时防止重复
     private Integer activeFlag;
+    private LocalDateTime frozenAt;
 
     public Order(Long passengerId){
         this.setPassengerId(passengerId);

@@ -1,7 +1,7 @@
 package com.example.javarelay.orderstatus.service.Impl;
 
-import com.example.javarelay.data.entity.OrderDetail;
-import com.example.javarelay.data.mapper.OrderDetailMapper;
+import com.example.javarelay.orderstatus.entity.OrderDetail;
+import com.example.javarelay.orderstatus.mapper.OrderDetailMapper;
 import com.example.javarelay.dto.Result;
 import com.example.javarelay.orderstatus.pojo.RouteInfo;
 import com.example.javarelay.strategysimpl.infocollect.InfoCollector;

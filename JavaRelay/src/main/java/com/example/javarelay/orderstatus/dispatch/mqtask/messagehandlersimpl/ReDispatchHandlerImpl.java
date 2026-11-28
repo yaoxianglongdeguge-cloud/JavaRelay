@@ -1,8 +1,8 @@
-package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
+package com.example.javarelay.orderstatus.dispatch.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.dto.Result;
-import com.example.javarelay.orderstatus.mqtask.messagecells.ReDispatchMessage;
+import com.example.javarelay.orderstatus.dispatch.mqtask.messagecells.ReDispatchMessage;
 import com.example.javarelay.orderstatus.service.PassengerOperateService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
@@ -10,11 +10,7 @@ import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * 重派消息消费者：让订单再提交一次分配请求。
- *
- * <p>失败只记日志；订单最终由分配队列的超时兜底取消。
- */
+
 @Slf4j
 @Component
 @RocketMQMessageListener(topic = "jr_redispatch", consumerGroup = "jr_redispatch_group")

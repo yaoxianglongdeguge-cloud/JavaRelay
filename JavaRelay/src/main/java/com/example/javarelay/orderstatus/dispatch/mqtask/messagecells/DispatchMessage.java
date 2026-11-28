@@ -1,4 +1,4 @@
-package com.example.javarelay.orderstatus.mqtask.messagecells;
+package com.example.javarelay.orderstatus.dispatch.mqtask.messagecells;
 
 import com.example.javarelay.infra.mq.MessageCell;
 import com.example.javarelay.orderstatus.config.MQConfig;
@@ -6,17 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * 派单链路消息：一个 topic、一个 step 字段，表示"推进到哪一步"。
- *
- * <p>设计约定：
- * <ul>
- *   <li>消息只带 orderId / passengerId / step，<b>不带业务数据</b>；
- *       每一步都重新读订单，所以天然幂等、天然自愈</li>
- *   <li>步骤顺序：PASSENGER → DRIVER → PATH，由各步骤成功后自行发下一条</li>
- *   <li>失败重试不走这里（见 ReDispatchMessage，它带 retryCount）</li>
- * </ul>
- */
+
 public class DispatchMessage extends MessageCell<DispatchMessage.msg> {
 
     /** 派单链路的步骤 */

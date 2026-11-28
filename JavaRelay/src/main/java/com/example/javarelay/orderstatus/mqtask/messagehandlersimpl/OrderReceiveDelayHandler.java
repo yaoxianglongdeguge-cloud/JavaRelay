@@ -1,9 +1,9 @@
 package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
-import com.example.javarelay.data.entity.Order;
+import com.example.javarelay.orderstatus.entity.Order;
 import com.example.javarelay.dto.Result;
-import com.example.javarelay.data.mapper.OrderMapper;
+import com.example.javarelay.orderstatus.mapper.OrderMapper;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderOperatorEnum;
 import com.example.javarelay.orderstatus.constants.statusenum.OrderStatusEnum;
 import com.example.javarelay.orderstatus.exception.StatusChangeException;
@@ -77,7 +77,7 @@ public class OrderReceiveDelayHandler implements RocketMQListener<String> {
                 log.warn("接单超时重派失败 orderId={} reason={}", orderId,
                         redispatch == null ? "null" : redispatch.getMessage());
             } else {
-                log.info("订单 {} 接单超时，已重派", orderId);
+                log.info("订单 {} 接单超时，已提交匹配司机请求", orderId);
             }
 
         } catch (StatusChangeException e) {

@@ -1,9 +1,9 @@
-package com.example.javarelay.orderstatus.mqtask.messagehandlersimpl;
+package com.example.javarelay.orderstatus.dispatch.mqtask.messagehandlersimpl;
 
 import com.alibaba.fastjson2.JSON;
 import com.example.javarelay.dto.Result;
-import com.example.javarelay.orderstatus.mqtask.messagecells.DispatchMessage;
-import com.example.javarelay.orderstatus.service.DispatchService;
+import com.example.javarelay.orderstatus.dispatch.mqtask.messagecells.DispatchMessage;
+import com.example.javarelay.orderstatus.dispatch.service.DispatchService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -68,9 +68,9 @@ public class DispatchHandlerImpl implements RocketMQListener<String> {
     private Result execute(DispatchMessage.Step step, Long orderId, Long passengerId) {
 
         return switch (step) {
-            case PASSENGER -> dispatchService.AssignPassenger(orderId, passengerId);
-            case DRIVER -> dispatchService.AssignDriver(orderId, passengerId);
-            case PATH -> dispatchService.AssignPath(orderId, passengerId);
+            case PASSENGER -> dispatchService.dispatch(orderId, passengerId);
+            case DRIVER -> dispatchService.reDispatch(orderId, passengerId);
+            case PATH -> dispatchService.assignPath(orderId, passengerId);
         };
     }
 }
